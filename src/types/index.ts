@@ -8,7 +8,7 @@ export interface Market {
   totalVolume: number;
   totalBets: number;
   outcomes: Outcome[];
-  status: 'active' | 'resolved' | 'pending';
+  status: 'active' | 'resolved' | 'pending' | 'cancelled';
   resolvedOutcome?: string;
   createdAt: string;
   featured?: boolean;
