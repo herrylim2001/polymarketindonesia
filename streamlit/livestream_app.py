@@ -1,5 +1,94 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import re
+from urllib.parse import urlparse, parse_qs
+
+def convert_to_embed_url(url: str) -> str:
+    """
+    Convert berbagai format URL video ke format embed yang benar.
+    Supports: YouTube, Vimeo, Twitch, Facebook, Dailymotion
+    """
+    if not url:
+        return ""
+
+    url = url.strip()
+
+    # YouTube patterns
+    youtube_patterns = [
+        # youtube.com/watch?v=VIDEO_ID
+        r'(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([a-zA-Z0-9_-]+)',
+        # youtube.com/embed/VIDEO_ID (already embed)
+        r'(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]+)',
+        # youtu.be/VIDEO_ID
+        r'(?:https?://)?youtu\.be/([a-zA-Z0-9_-]+)',
+        # youtube.com/v/VIDEO_ID
+        r'(?:https?://)?(?:www\.)?youtube\.com/v/([a-zA-Z0-9_-]+)',
+        # youtube.com/live/VIDEO_ID
+        r'(?:https?://)?(?:www\.)?youtube\.com/live/([a-zA-Z0-9_-]+)',
+    ]
+
+    for pattern in youtube_patterns:
+        match = re.search(pattern, url)
+        if match:
+            video_id = match.group(1)
+            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1"
+
+    # Vimeo patterns
+    vimeo_patterns = [
+        # vimeo.com/VIDEO_ID
+        r'(?:https?://)?(?:www\.)?vimeo\.com/(\d+)',
+        # player.vimeo.com/video/VIDEO_ID (already embed)
+        r'(?:https?://)?player\.vimeo\.com/video/(\d+)',
+    ]
+
+    for pattern in vimeo_patterns:
+        match = re.search(pattern, url)
+        if match:
+            video_id = match.group(1)
+            return f"https://player.vimeo.com/video/{video_id}"
+
+    # Twitch patterns
+    twitch_channel = re.search(r'(?:https?://)?(?:www\.)?twitch\.tv/([a-zA-Z0-9_]+)(?!/video)', url)
+    if twitch_channel:
+        channel = twitch_channel.group(1)
+        return f"https://player.twitch.tv/?channel={channel}&parent=localhost&muted=true"
+
+    twitch_video = re.search(r'(?:https?://)?(?:www\.)?twitch\.tv/videos/(\d+)', url)
+    if twitch_video:
+        video_id = twitch_video.group(1)
+        return f"https://player.twitch.tv/?video={video_id}&parent=localhost&muted=true"
+
+    # Facebook video
+    fb_match = re.search(r'(?:https?://)?(?:www\.)?facebook\.com/.+/videos/(\d+)', url)
+    if fb_match:
+        return f"https://www.facebook.com/plugins/video.php?href={url}"
+
+    # Dailymotion
+    dm_match = re.search(r'(?:https?://)?(?:www\.)?dailymotion\.com/video/([a-zA-Z0-9]+)', url)
+    if dm_match:
+        video_id = dm_match.group(1)
+        return f"https://www.dailymotion.com/embed/video/{video_id}"
+
+    # If already an embed URL or unknown format, return as-is
+    return url
+
+def get_url_info(url: str) -> dict:
+    """Get info about the URL for display"""
+    if not url:
+        return {"platform": "Unknown", "status": "No URL"}
+
+    if "youtube.com" in url or "youtu.be" in url:
+        return {"platform": "YouTube", "icon": "🎬"}
+    elif "vimeo.com" in url:
+        return {"platform": "Vimeo", "icon": "🎥"}
+    elif "twitch.tv" in url:
+        return {"platform": "Twitch", "icon": "🎮"}
+    elif "facebook.com" in url:
+        return {"platform": "Facebook", "icon": "📘"}
+    elif "dailymotion.com" in url:
+        return {"platform": "Dailymotion", "icon": "📺"}
+    else:
+        return {"platform": "Custom", "icon": "🔗"}
 
 # Page config
 st.set_page_config(
@@ -300,14 +389,48 @@ def main():
         url_option = st.selectbox(
             "Pilih Sample atau Custom",
             list(SAMPLE_URLS.keys()),
-            index=0
+            index=3  # Default to Custom URL
         )
 
+        # Help text for supported URLs
+        with st.expander("📋 Format URL yang didukung"):
+            st.markdown("""
+            **YouTube:**
+            - `youtube.com/watch?v=xxxxx`
+            - `youtu.be/xxxxx`
+            - `youtube.com/live/xxxxx`
+
+            **Vimeo:**
+            - `vimeo.com/xxxxx`
+
+            **Twitch:**
+            - `twitch.tv/channel_name`
+            - `twitch.tv/videos/xxxxx`
+
+            **Lainnya:**
+            - Facebook Video
+            - Dailymotion
+            - Direct embed URL
+            """)
+
         if url_option == "Custom URL":
-            video_url = st.text_input(
-                "Masukkan URL iframe",
-                placeholder="https://www.youtube.com/embed/..."
+            raw_url = st.text_input(
+                "Masukkan URL video",
+                placeholder="https://www.youtube.com/watch?v=... atau link lainnya"
             )
+            video_url = convert_to_embed_url(raw_url)
+
+            # Show URL conversion info
+            if raw_url:
+                url_info = get_url_info(raw_url)
+                st.markdown(f"**Platform:** {url_info['icon']} {url_info['platform']}")
+
+                if raw_url != video_url:
+                    st.success("✅ URL berhasil dikonversi ke format embed!")
+                    with st.expander("Lihat URL embed"):
+                        st.code(video_url, language=None)
+                else:
+                    st.info("URL sudah dalam format embed")
         else:
             video_url = SAMPLE_URLS[url_option]
             if video_url:
