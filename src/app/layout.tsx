@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Header from '@/components/Header';
+import FloatingVideoProvider from '@/components/FloatingVideoProvider';
 
 export const metadata: Metadata = {
   title: 'PolyID - Prediction Market Indonesia',
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body className="font-sans bg-dark-950 text-white min-h-screen">
         <Header />
         <main>{children}</main>
+        <FloatingVideoProvider />
 
         {/* Footer */}
         <footer className="bg-dark-900 border-t border-dark-700 mt-20">

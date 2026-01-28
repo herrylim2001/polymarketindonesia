@@ -63,6 +63,112 @@ export interface CategoryInfo {
   color: string;
 }
 
+// Live Stream Types
+export interface LiveStream {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  streamUrl: string;
+  category: 'sports' | 'esports' | 'casino' | 'events';
+  isLive: boolean;
+  viewerCount: number;
+  participants?: string; // e.g., "Kasnikowski, Maks - Engel, Justin"
+  score?: string; // e.g., "3-2, 6-4"
+  eventInfo?: string; // e.g., "ATP Challenger"
+}
+
+export interface ChatMessage {
+  id: string;
+  username: string;
+  message: string;
+  timestamp: string;
+  avatar?: string;
+  isVIP?: boolean;
+}
+
+export interface Gift {
+  id: string;
+  name: string;
+  icon: string;
+  price: number; // in IDR
+}
+
+export const AVAILABLE_GIFTS: Gift[] = [
+  { id: '1', name: 'Love', icon: '❤️', price: 1000 },
+  { id: '2', name: 'Fire', icon: '🔥', price: 5000 },
+  { id: '3', name: 'Star', icon: '⭐', price: 10000 },
+  { id: '4', name: 'Diamond', icon: '💎', price: 50000 },
+  { id: '5', name: 'Crown', icon: '👑', price: 100000 },
+  { id: '6', name: 'Rocket', icon: '🚀', price: 500000 },
+];
+
+// Mock Live Streams Data
+export const MOCK_LIVE_STREAMS: LiveStream[] = [
+  {
+    id: '1',
+    title: 'Tennis ATP Challenger',
+    description: 'Live tennis match',
+    thumbnailUrl: '/streams/tennis.jpg',
+    streamUrl: 'https://example.com/stream1',
+    category: 'sports',
+    isLive: true,
+    viewerCount: 1234,
+    participants: 'Kasnikowski, Maks - Engel, Justin',
+    score: '3-2, 6-4',
+    eventInfo: 'ATP Challenger'
+  },
+  {
+    id: '2',
+    title: 'Liga 1 Indonesia',
+    description: 'Persib vs Persija',
+    thumbnailUrl: '/streams/football.jpg',
+    streamUrl: 'https://example.com/stream2',
+    category: 'sports',
+    isLive: true,
+    viewerCount: 5678,
+    participants: 'Persib Bandung - Persija Jakarta',
+    score: '1-0',
+    eventInfo: 'Liga 1 2026'
+  },
+  {
+    id: '3',
+    title: 'Badminton World Tour',
+    description: 'Indonesia Open',
+    thumbnailUrl: '/streams/badminton.jpg',
+    streamUrl: 'https://example.com/stream3',
+    category: 'sports',
+    isLive: true,
+    viewerCount: 3456,
+    participants: 'Ginting - Axelsen',
+    score: '21-18, 19-21',
+    eventInfo: 'Indonesia Open 2026'
+  },
+  {
+    id: '4',
+    title: 'Mobile Legends MPL',
+    description: 'ONIC vs RRQ',
+    thumbnailUrl: '/streams/esports.jpg',
+    streamUrl: 'https://example.com/stream4',
+    category: 'esports',
+    isLive: true,
+    viewerCount: 8901,
+    participants: 'ONIC Esports - RRQ Hoshi',
+    score: '2-1',
+    eventInfo: 'MPL ID S15'
+  },
+  {
+    id: '5',
+    title: 'Casino Live - Blackjack',
+    description: 'Live dealer blackjack',
+    thumbnailUrl: '/streams/casino.jpg',
+    streamUrl: 'https://example.com/stream5',
+    category: 'casino',
+    isLive: true,
+    viewerCount: 456
+  }
+];
+
 export const CATEGORIES: CategoryInfo[] = [
   {
     id: 'politik',
