@@ -1,633 +1,976 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import re
-from urllib.parse import urlparse, parse_qs
 
 def convert_to_embed_url(url: str) -> str:
-    """
-    Convert berbagai format URL video ke format embed yang benar.
-    Supports: YouTube, Vimeo, Twitch, Facebook, Dailymotion
-    """
+    """Convert berbagai format URL video ke format embed yang benar."""
     if not url:
         return ""
-
     url = url.strip()
 
     # YouTube patterns
     youtube_patterns = [
-        # youtube.com/watch?v=VIDEO_ID
         r'(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([a-zA-Z0-9_-]+)',
-        # youtube.com/embed/VIDEO_ID (already embed)
         r'(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]+)',
-        # youtu.be/VIDEO_ID
         r'(?:https?://)?youtu\.be/([a-zA-Z0-9_-]+)',
-        # youtube.com/v/VIDEO_ID
-        r'(?:https?://)?(?:www\.)?youtube\.com/v/([a-zA-Z0-9_-]+)',
-        # youtube.com/live/VIDEO_ID
         r'(?:https?://)?(?:www\.)?youtube\.com/live/([a-zA-Z0-9_-]+)',
     ]
-
     for pattern in youtube_patterns:
         match = re.search(pattern, url)
         if match:
             video_id = match.group(1)
             return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1"
 
-    # Vimeo patterns
-    vimeo_patterns = [
-        # vimeo.com/VIDEO_ID
-        r'(?:https?://)?(?:www\.)?vimeo\.com/(\d+)',
-        # player.vimeo.com/video/VIDEO_ID (already embed)
-        r'(?:https?://)?player\.vimeo\.com/video/(\d+)',
-    ]
+    # Vimeo
+    vimeo_match = re.search(r'(?:https?://)?(?:www\.)?vimeo\.com/(\d+)', url)
+    if vimeo_match:
+        return f"https://player.vimeo.com/video/{vimeo_match.group(1)}"
 
-    for pattern in vimeo_patterns:
-        match = re.search(pattern, url)
-        if match:
-            video_id = match.group(1)
-            return f"https://player.vimeo.com/video/{video_id}"
-
-    # Twitch patterns
-    twitch_channel = re.search(r'(?:https?://)?(?:www\.)?twitch\.tv/([a-zA-Z0-9_]+)(?!/video)', url)
-    if twitch_channel:
-        channel = twitch_channel.group(1)
-        return f"https://player.twitch.tv/?channel={channel}&parent=localhost&muted=true"
-
-    twitch_video = re.search(r'(?:https?://)?(?:www\.)?twitch\.tv/videos/(\d+)', url)
-    if twitch_video:
-        video_id = twitch_video.group(1)
-        return f"https://player.twitch.tv/?video={video_id}&parent=localhost&muted=true"
-
-    # Facebook video
-    fb_match = re.search(r'(?:https?://)?(?:www\.)?facebook\.com/.+/videos/(\d+)', url)
-    if fb_match:
-        return f"https://www.facebook.com/plugins/video.php?href={url}"
-
-    # Dailymotion
-    dm_match = re.search(r'(?:https?://)?(?:www\.)?dailymotion\.com/video/([a-zA-Z0-9]+)', url)
-    if dm_match:
-        video_id = dm_match.group(1)
-        return f"https://www.dailymotion.com/embed/video/{video_id}"
-
-    # If already an embed URL or unknown format, return as-is
     return url
-
-def get_url_info(url: str) -> dict:
-    """Get info about the URL for display"""
-    if not url:
-        return {"platform": "Unknown", "status": "No URL"}
-
-    if "youtube.com" in url or "youtu.be" in url:
-        return {"platform": "YouTube", "icon": "🎬"}
-    elif "vimeo.com" in url:
-        return {"platform": "Vimeo", "icon": "🎥"}
-    elif "twitch.tv" in url:
-        return {"platform": "Twitch", "icon": "🎮"}
-    elif "facebook.com" in url:
-        return {"platform": "Facebook", "icon": "📘"}
-    elif "dailymotion.com" in url:
-        return {"platform": "Dailymotion", "icon": "📺"}
-    else:
-        return {"platform": "Custom", "icon": "🔗"}
 
 # Page config
 st.set_page_config(
-    page_title="Livestream Video Wireframe",
+    page_title="Live Stream - Stake Style",
     page_icon="📺",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS untuk dark theme dan styling
-st.markdown("""
-<style>
-    /* Dark theme */
-    .stApp {
-        background-color: #0a0a0f;
-    }
+# Sample streams data
+SAMPLE_STREAMS = [
+    {"id": "1", "title": "ATP Tennis - Kasnikowski vs Engel", "category": "Tennis", "viewers": 1250, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "🎾", "is_live": True},
+    {"id": "2", "title": "UEFA Champions League", "category": "Football", "viewers": 45000, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "⚽", "is_live": True},
+    {"id": "3", "title": "NBA - Lakers vs Warriors", "category": "Basketball", "viewers": 32000, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "🏀", "is_live": True},
+    {"id": "4", "title": "eSports - Dota 2 Major", "category": "Gaming", "viewers": 89000, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "🎮", "is_live": True},
+    {"id": "5", "title": "F1 Grand Prix Monaco", "category": "Racing", "viewers": 125000, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "🏎️", "is_live": True},
+    {"id": "6", "title": "Boxing - Heavyweight Championship", "category": "Boxing", "viewers": 67000, "url": "https://www.youtube.com/embed/jfKfPfyJRdk", "thumbnail": "🥊", "is_live": False},
+]
 
-    /* Header styling */
-    .main-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        padding: 1.5rem 2rem;
-        border-radius: 1rem;
-        margin-bottom: 2rem;
-        border: 1px solid #2a2a4a;
-    }
+def render_stake_style_player():
+    """Render the complete Stake-style floating player with HTML/CSS/JS"""
 
-    .main-header h1 {
-        color: white;
-        margin: 0;
-        font-size: 1.8rem;
-    }
+    # Build streams JSON for JavaScript
+    streams_json = str(SAMPLE_STREAMS).replace("'", '"').replace("True", "true").replace("False", "false")
 
-    .main-header p {
-        color: rgba(255,255,255,0.6);
-        margin: 0.5rem 0 0 0;
-    }
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Inter', sans-serif;
+            }}
 
-    /* Video container */
-    .video-container {
-        background: #1a1a2e;
-        border-radius: 1rem;
-        overflow: hidden;
-        border: 1px solid #2a2a4a;
-    }
+            body {{
+                background: #0f1923;
+                min-height: 100vh;
+                color: white;
+            }}
 
-    /* Live badge */
-    .live-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #ef4444;
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.875rem;
-        font-weight: bold;
-    }
+            /* Main Content Area - Simulated page content */
+            .main-content {{
+                padding: 20px;
+                padding-bottom: 100px;
+                min-height: 100vh;
+            }}
 
-    .live-badge::before {
-        content: '';
-        width: 8px;
-        height: 8px;
-        background: white;
-        border-radius: 50%;
-        animation: pulse 1.5s infinite;
-    }
+            .content-header {{
+                background: linear-gradient(135deg, #1a2c38 0%, #0f1923 100%);
+                padding: 24px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                border: 1px solid #2a3f4d;
+            }}
 
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
+            .content-header h1 {{
+                font-size: 24px;
+                margin-bottom: 8px;
+            }}
 
-    /* Feature cards */
-    .feature-card {
-        background: #1a1a2e;
-        padding: 1.5rem;
-        border-radius: 1rem;
-        border: 1px solid #2a2a4a;
-        height: 100%;
-    }
+            .content-header p {{
+                color: #8b9caa;
+                font-size: 14px;
+            }}
 
-    .feature-card h3 {
-        color: white;
-        margin-top: 1rem;
-    }
+            /* Sample content cards */
+            .content-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 16px;
+            }}
 
-    .feature-card p {
-        color: rgba(255,255,255,0.6);
-        font-size: 0.9rem;
-    }
+            .content-card {{
+                background: #1a2c38;
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid #2a3f4d;
+                transition: all 0.2s;
+            }}
 
-    /* Browser frame */
-    .browser-frame {
-        background: #1e1e2e;
-        border-radius: 0.75rem 0.75rem 0 0;
-        padding: 0.5rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
+            .content-card:hover {{
+                border-color: #00d4aa;
+                transform: translateY(-2px);
+            }}
 
-    .browser-dots {
-        display: flex;
-        gap: 6px;
-    }
+            .content-card h3 {{
+                font-size: 16px;
+                margin-bottom: 8px;
+            }}
 
-    .browser-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
+            .content-card p {{
+                color: #8b9caa;
+                font-size: 13px;
+            }}
 
-    .browser-dot.red { background: #ef4444; }
-    .browser-dot.yellow { background: #eab308; }
-    .browser-dot.green { background: #22c55e; }
+            /* Floating Live Button */
+            .floating-live-btn {{
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+                color: #0f1923;
+                border: none;
+                padding: 14px 24px;
+                border-radius: 50px;
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                box-shadow: 0 4px 20px rgba(0, 212, 170, 0.4);
+                transition: all 0.3s;
+                z-index: 1000;
+            }}
 
-    .browser-url {
-        flex: 1;
-        background: #2a2a3e;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.25rem;
-        color: rgba(255,255,255,0.4);
-        font-size: 0.75rem;
-        margin-left: 0.5rem;
-    }
+            .floating-live-btn:hover {{
+                transform: scale(1.05);
+                box-shadow: 0 6px 30px rgba(0, 212, 170, 0.5);
+            }}
 
-    /* Overlay controls */
-    .video-overlay {
-        position: relative;
-    }
+            .floating-live-btn .live-dot {{
+                width: 8px;
+                height: 8px;
+                background: #ff4757;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }}
 
-    .overlay-top {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+            .floating-live-btn.hidden {{
+                display: none;
+            }}
 
-    .overlay-bottom {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem;
-        background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-    }
+            @keyframes pulse {{
+                0%, 100% {{ opacity: 1; transform: scale(1); }}
+                50% {{ opacity: 0.6; transform: scale(1.2); }}
+            }}
 
-    /* Placeholder */
-    .video-placeholder {
-        background: linear-gradient(135deg, #1e1e2e 0%, #0a0a1a 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        min-height: 300px;
-    }
+            /* Stream List Popup */
+            .stream-list-popup {{
+                position: fixed;
+                bottom: 80px;
+                right: 20px;
+                width: 360px;
+                max-height: 500px;
+                background: #1a2c38;
+                border-radius: 16px;
+                border: 1px solid #2a3f4d;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                z-index: 1001;
+                display: none;
+                overflow: hidden;
+            }}
 
-    .placeholder-icon {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        animation: pulse 2s infinite;
-    }
+            .stream-list-popup.show {{
+                display: block;
+                animation: slideUp 0.3s ease;
+            }}
 
-    /* Embed code */
-    .embed-code {
-        background: #0a0a1a;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        font-family: monospace;
-        color: #22c55e;
-        font-size: 0.85rem;
-        overflow-x: auto;
-        white-space: pre-wrap;
-    }
+            @keyframes slideUp {{
+                from {{ opacity: 0; transform: translateY(20px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+            }}
 
-    /* Viewer count */
-    .viewer-count {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: rgba(255,255,255,0.8);
-        font-size: 0.875rem;
-    }
+            .popup-header {{
+                padding: 16px 20px;
+                background: #0f1923;
+                border-bottom: 1px solid #2a3f4d;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }}
 
-    /* Hide Streamlit branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+            .popup-header h3 {{
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }}
 
-    /* Sidebar styling */
-    .css-1d391kg {
-        background-color: #1a1a2e;
-    }
+            .popup-header .close-btn {{
+                background: none;
+                border: none;
+                color: #8b9caa;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 4px;
+                line-height: 1;
+            }}
 
-    section[data-testid="stSidebar"] {
-        background-color: #1a1a2e;
-    }
-</style>
-""", unsafe_allow_html=True)
+            .popup-header .close-btn:hover {{
+                color: white;
+            }}
 
-# Aspect ratio configurations
-ASPECT_RATIOS = {
-    "16:9 (Widescreen)": {"ratio": "16/9", "padding": "56.25%"},
-    "4:3 (Standard)": {"ratio": "4/3", "padding": "75%"},
-    "1:1 (Square)": {"ratio": "1/1", "padding": "100%"},
-    "9:16 (Portrait)": {"ratio": "9/16", "padding": "177.78%"},
-    "21:9 (Ultra Wide)": {"ratio": "21/9", "padding": "42.86%"},
-}
+            .stream-list {{
+                max-height: 400px;
+                overflow-y: auto;
+            }}
 
-DEVICE_WIDTHS = {
-    "Desktop": "100%",
-    "Tablet": "768px",
-    "Mobile": "375px",
-    "TV / Large Screen": "100%",
-}
+            .stream-item {{
+                padding: 14px 20px;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                cursor: pointer;
+                transition: background 0.2s;
+                border-bottom: 1px solid #2a3f4d;
+            }}
 
-SAMPLE_URLS = {
-    "YouTube Live (Lofi Girl)": "https://www.youtube.com/embed/jfKfPfyJRdk",
-    "YouTube (Sample)": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    "Vimeo (Sample)": "https://player.vimeo.com/video/824804225",
-    "Custom URL": "",
-}
+            .stream-item:hover {{
+                background: #243442;
+            }}
 
-def render_video_player(url: str, aspect_ratio: str, show_overlay: bool = True, viewer_count: int = 1250):
-    """Render video player dengan iframe atau placeholder"""
+            .stream-item:last-child {{
+                border-bottom: none;
+            }}
 
-    padding = ASPECT_RATIOS[aspect_ratio]["padding"]
+            .stream-thumb {{
+                width: 50px;
+                height: 50px;
+                background: #0f1923;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+            }}
 
-    if url:
-        # Render iframe
-        iframe_html = f"""
-        <div class="video-container" style="position: relative; width: 100%; padding-bottom: {padding}; background: #0a0a1a;">
-            <iframe
-                src="{url}"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen>
-            </iframe>
-            {"" if not show_overlay else f'''
-            <div style="position: absolute; top: 0; left: 0; right: 0; padding: 1rem; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); display: flex; justify-content: space-between; align-items: center; pointer-events: none;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <span class="live-badge">LIVE</span>
+            .stream-info {{
+                flex: 1;
+            }}
+
+            .stream-info h4 {{
+                font-size: 14px;
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }}
+
+            .stream-meta {{
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 12px;
+                color: #8b9caa;
+            }}
+
+            .stream-meta .live-badge {{
+                background: #ff4757;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 600;
+            }}
+
+            .stream-meta .viewers {{
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }}
+
+            /* Floating Video Player */
+            .floating-player {{
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 400px;
+                background: #1a2c38;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                z-index: 1002;
+                display: none;
+                overflow: hidden;
+                border: 1px solid #2a3f4d;
+            }}
+
+            .floating-player.show {{
+                display: block;
+                animation: slideUp 0.3s ease;
+            }}
+
+            .floating-player.expanded {{
+                width: 600px;
+            }}
+
+            .floating-player.minimized {{
+                width: 320px;
+            }}
+
+            .floating-player.minimized .video-container {{
+                display: none;
+            }}
+
+            .floating-player.minimized .player-actions {{
+                display: none;
+            }}
+
+            .player-header {{
+                padding: 12px 16px;
+                background: #0f1923;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: move;
+            }}
+
+            .player-title {{
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                overflow: hidden;
+            }}
+
+            .player-title .icon {{
+                font-size: 18px;
+            }}
+
+            .player-title span {{
+                font-size: 14px;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }}
+
+            .player-controls {{
+                display: flex;
+                gap: 8px;
+            }}
+
+            .player-controls button {{
+                background: none;
+                border: none;
+                color: #8b9caa;
+                font-size: 16px;
+                cursor: pointer;
+                padding: 6px;
+                border-radius: 6px;
+                transition: all 0.2s;
+            }}
+
+            .player-controls button:hover {{
+                background: #243442;
+                color: white;
+            }}
+
+            .video-container {{
+                position: relative;
+                width: 100%;
+                padding-bottom: 56.25%;
+                background: #000;
+            }}
+
+            .video-container iframe {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border: none;
+            }}
+
+            .video-overlay {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                padding: 10px;
+                background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                pointer-events: none;
+            }}
+
+            .video-overlay .live-indicator {{
+                background: #ff4757;
+                color: white;
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }}
+
+            .video-overlay .live-indicator .dot {{
+                width: 6px;
+                height: 6px;
+                background: white;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }}
+
+            .video-overlay .viewer-count {{
+                color: white;
+                font-size: 12px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }}
+
+            /* Stream Info Bar */
+            .stream-info-bar {{
+                padding: 12px 16px;
+                background: #0f1923;
+                border-top: 1px solid #2a3f4d;
+            }}
+
+            .stream-info-bar h4 {{
+                font-size: 14px;
+                margin-bottom: 4px;
+            }}
+
+            .stream-info-bar .meta {{
+                font-size: 12px;
+                color: #8b9caa;
+            }}
+
+            /* Player Actions - Chat & Gift */
+            .player-actions {{
+                display: flex;
+                gap: 10px;
+                padding: 12px 16px;
+                background: #0f1923;
+                border-top: 1px solid #2a3f4d;
+            }}
+
+            .action-btn {{
+                flex: 1;
+                padding: 12px 16px;
+                border: none;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s;
+            }}
+
+            .action-btn.chat-btn {{
+                background: #243442;
+                color: white;
+            }}
+
+            .action-btn.chat-btn:hover {{
+                background: #2d4553;
+            }}
+
+            .action-btn.gift-btn {{
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+                color: white;
+            }}
+
+            .action-btn.gift-btn:hover {{
+                transform: scale(1.02);
+            }}
+
+            .action-btn .icon {{
+                font-size: 18px;
+            }}
+
+            /* Chat Panel */
+            .chat-panel {{
+                display: none;
+                padding: 16px;
+                background: #0f1923;
+                border-top: 1px solid #2a3f4d;
+                max-height: 250px;
+            }}
+
+            .chat-panel.show {{
+                display: block;
+            }}
+
+            .chat-messages {{
+                height: 150px;
+                overflow-y: auto;
+                margin-bottom: 12px;
+            }}
+
+            .chat-message {{
+                padding: 8px 0;
+                border-bottom: 1px solid #1a2c38;
+            }}
+
+            .chat-message .username {{
+                color: #00d4aa;
+                font-weight: 600;
+                font-size: 12px;
+            }}
+
+            .chat-message .text {{
+                color: #ccc;
+                font-size: 13px;
+                margin-top: 2px;
+            }}
+
+            .chat-input-container {{
+                display: flex;
+                gap: 10px;
+            }}
+
+            .chat-input {{
+                flex: 1;
+                background: #1a2c38;
+                border: 1px solid #2a3f4d;
+                border-radius: 8px;
+                padding: 10px 14px;
+                color: white;
+                font-size: 13px;
+            }}
+
+            .chat-input:focus {{
+                outline: none;
+                border-color: #00d4aa;
+            }}
+
+            .chat-send-btn {{
+                background: #00d4aa;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 16px;
+                color: #0f1923;
+                font-weight: 600;
+                cursor: pointer;
+            }}
+
+            /* Gift Panel */
+            .gift-panel {{
+                display: none;
+                padding: 16px;
+                background: #0f1923;
+                border-top: 1px solid #2a3f4d;
+            }}
+
+            .gift-panel.show {{
+                display: block;
+            }}
+
+            .gift-panel h4 {{
+                font-size: 14px;
+                margin-bottom: 12px;
+            }}
+
+            .gift-grid {{
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }}
+
+            .gift-item {{
+                background: #1a2c38;
+                border: 1px solid #2a3f4d;
+                border-radius: 10px;
+                padding: 12px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s;
+            }}
+
+            .gift-item:hover {{
+                border-color: #00d4aa;
+                transform: scale(1.05);
+            }}
+
+            .gift-item .emoji {{
+                font-size: 28px;
+                margin-bottom: 6px;
+            }}
+
+            .gift-item .price {{
+                font-size: 11px;
+                color: #00d4aa;
+                font-weight: 600;
+            }}
+
+            /* Stream Selector Button in Player */
+            .change-stream-btn {{
+                width: 100%;
+                padding: 10px;
+                background: #243442;
+                border: none;
+                color: #8b9caa;
+                font-size: 13px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+            }}
+
+            .change-stream-btn:hover {{
+                background: #2d4553;
+                color: white;
+            }}
+
+            /* Scrollbar styling */
+            ::-webkit-scrollbar {{
+                width: 6px;
+            }}
+
+            ::-webkit-scrollbar-track {{
+                background: #0f1923;
+            }}
+
+            ::-webkit-scrollbar-thumb {{
+                background: #2a3f4d;
+                border-radius: 3px;
+            }}
+
+            ::-webkit-scrollbar-thumb:hover {{
+                background: #3a5060;
+            }}
+        </style>
+    </head>
+    <body>
+        <!-- Main Content (simulated page) -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>🎰 Polymarket Indonesia</h1>
+                <p>Platform prediksi terbaik di Indonesia - Nikmati live streaming sambil bermain!</p>
+            </div>
+
+            <div class="content-grid">
+                <div class="content-card">
+                    <h3>🏆 Featured Market</h3>
+                    <p>Prediksi hasil pertandingan dan menangkan hadiah besar!</p>
                 </div>
-                <div class="viewer-count">
-                    👁️ {viewer_count:,} viewers
+                <div class="content-card">
+                    <h3>📈 Trending Now</h3>
+                    <p>Lihat pasar yang sedang ramai diperdagangkan.</p>
+                </div>
+                <div class="content-card">
+                    <h3>⏰ Ending Soon</h3>
+                    <p>Pasar yang akan segera ditutup. Jangan sampai ketinggalan!</p>
+                </div>
+                <div class="content-card">
+                    <h3>🔥 Hot Markets</h3>
+                    <p>Pasar dengan volume tertinggi hari ini.</p>
                 </div>
             </div>
-            '''}
         </div>
-        """
-    else:
-        # Render placeholder
-        iframe_html = f"""
-        <div class="video-container" style="position: relative; width: 100%; padding-bottom: {padding}; background: linear-gradient(135deg, #1e1e2e 0%, #0a0a1a 100%);">
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
-                <div style="font-size: 4rem; animation: pulse 2s infinite;">📺</div>
-                <p style="margin-top: 1rem; font-size: 1.1rem; font-weight: 500;">Menunggu Stream...</p>
-                <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Masukkan URL video di sidebar</p>
-            </div>
-            {"" if not show_overlay else f'''
-            <div style="position: absolute; top: 0; left: 0; right: 0; padding: 1rem; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); display: flex; justify-content: space-between; align-items: center;">
-                <span class="live-badge">LIVE</span>
-                <div class="viewer-count">👁️ -- viewers</div>
-            </div>
-            '''}
-        </div>
-        """
 
-    return iframe_html
+        <!-- Floating Live Button -->
+        <button class="floating-live-btn" id="liveBtn" onclick="toggleStreamList()">
+            <span class="live-dot"></span>
+            <span>📺 Live Stream</span>
+            <span style="background: #0f1923; padding: 4px 8px; border-radius: 20px; font-size: 12px;">6</span>
+        </button>
 
-def render_browser_frame(url: str):
-    """Render browser frame mockup"""
-    display_url = url if url else "https://polymarket.id/livestream"
-    return f"""
-    <div class="browser-frame">
-        <div class="browser-dots">
-            <div class="browser-dot red"></div>
-            <div class="browser-dot yellow"></div>
-            <div class="browser-dot green"></div>
+        <!-- Stream List Popup -->
+        <div class="stream-list-popup" id="streamListPopup">
+            <div class="popup-header">
+                <h3><span>📺</span> Live Streams</h3>
+                <button class="close-btn" onclick="toggleStreamList()">✕</button>
+            </div>
+            <div class="stream-list" id="streamList">
+                <!-- Stream items will be inserted here -->
+            </div>
         </div>
-        <div class="browser-url">{display_url[:50]}{'...' if len(display_url) > 50 else ''}</div>
-    </div>
+
+        <!-- Floating Video Player -->
+        <div class="floating-player" id="floatingPlayer">
+            <div class="player-header">
+                <div class="player-title">
+                    <span class="icon">📺</span>
+                    <span id="playerTitle">Live Stream</span>
+                </div>
+                <div class="player-controls">
+                    <button onclick="togglePlayerSize()" title="Resize">⬜</button>
+                    <button onclick="minimizePlayer()" title="Minimize">➖</button>
+                    <button onclick="closePlayer()" title="Close">✕</button>
+                </div>
+            </div>
+
+            <div class="video-container" id="videoContainer">
+                <iframe id="videoIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                <div class="video-overlay">
+                    <div class="live-indicator">
+                        <span class="dot"></span>
+                        LIVE
+                    </div>
+                    <div class="viewer-count" id="viewerCount">
+                        👁 0 viewers
+                    </div>
+                </div>
+            </div>
+
+            <div class="stream-info-bar">
+                <h4 id="streamTitle">Select a stream</h4>
+                <div class="meta" id="streamMeta">Category • 0 watching</div>
+            </div>
+
+            <button class="change-stream-btn" onclick="showStreamSelector()">
+                📋 Change Stream
+            </button>
+
+            <div class="player-actions">
+                <button class="action-btn chat-btn" onclick="toggleChat()">
+                    <span class="icon">💬</span>
+                    Chat
+                </button>
+                <button class="action-btn gift-btn" onclick="toggleGift()">
+                    <span class="icon">🎁</span>
+                    Send Gift
+                </button>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="chat-panel" id="chatPanel">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message">
+                        <div class="username">@sportsfan123</div>
+                        <div class="text">Great match! 🔥</div>
+                    </div>
+                    <div class="chat-message">
+                        <div class="username">@betmaster</div>
+                        <div class="text">Who's winning?</div>
+                    </div>
+                    <div class="chat-message">
+                        <div class="username">@luckygamer</div>
+                        <div class="text">Let's gooo! 🚀</div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" placeholder="Type a message..." id="chatInput">
+                    <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+
+            <!-- Gift Panel -->
+            <div class="gift-panel" id="giftPanel">
+                <h4>Send a Gift 🎁</h4>
+                <div class="gift-grid">
+                    <div class="gift-item" onclick="sendGift('❤️', 100)">
+                        <div class="emoji">❤️</div>
+                        <div class="price">100 coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('⭐', 500)">
+                        <div class="emoji">⭐</div>
+                        <div class="price">500 coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('🎉', 1000)">
+                        <div class="emoji">🎉</div>
+                        <div class="price">1K coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('💎', 5000)">
+                        <div class="emoji">💎</div>
+                        <div class="price">5K coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('🚀', 10000)">
+                        <div class="emoji">🚀</div>
+                        <div class="price">10K coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('👑', 50000)">
+                        <div class="emoji">👑</div>
+                        <div class="price">50K coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('🏆', 100000)">
+                        <div class="emoji">🏆</div>
+                        <div class="price">100K coins</div>
+                    </div>
+                    <div class="gift-item" onclick="sendGift('💰', 500000)">
+                        <div class="emoji">💰</div>
+                        <div class="price">500K coins</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const streams = {streams_json};
+            let currentStream = null;
+            let isExpanded = false;
+            let isMinimized = false;
+
+            // Initialize stream list
+            function initStreamList() {{
+                const listContainer = document.getElementById('streamList');
+                listContainer.innerHTML = streams.map(stream => `
+                    <div class="stream-item" onclick="selectStream('${{stream.id}}')">
+                        <div class="stream-thumb">${{stream.thumbnail}}</div>
+                        <div class="stream-info">
+                            <h4>${{stream.title}}</h4>
+                            <div class="stream-meta">
+                                ${{stream.is_live ? '<span class="live-badge">LIVE</span>' : ''}}
+                                <span class="viewers">👁 ${{stream.viewers.toLocaleString()}}</span>
+                                <span>${{stream.category}}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }}
+
+            function toggleStreamList() {{
+                const popup = document.getElementById('streamListPopup');
+                const btn = document.getElementById('liveBtn');
+                popup.classList.toggle('show');
+            }}
+
+            function selectStream(streamId) {{
+                const stream = streams.find(s => s.id === streamId);
+                if (!stream) return;
+
+                currentStream = stream;
+
+                // Update player
+                document.getElementById('videoIframe').src = stream.url;
+                document.getElementById('playerTitle').textContent = stream.title;
+                document.getElementById('streamTitle').textContent = stream.title;
+                document.getElementById('streamMeta').textContent = `${{stream.category}} • ${{stream.viewers.toLocaleString()}} watching`;
+                document.getElementById('viewerCount').textContent = `👁 ${{stream.viewers.toLocaleString()}} viewers`;
+
+                // Show player, hide list
+                document.getElementById('floatingPlayer').classList.add('show');
+                document.getElementById('streamListPopup').classList.remove('show');
+                document.getElementById('liveBtn').classList.add('hidden');
+
+                // Reset panels
+                document.getElementById('chatPanel').classList.remove('show');
+                document.getElementById('giftPanel').classList.remove('show');
+            }}
+
+            function showStreamSelector() {{
+                document.getElementById('streamListPopup').classList.add('show');
+            }}
+
+            function closePlayer() {{
+                document.getElementById('floatingPlayer').classList.remove('show');
+                document.getElementById('liveBtn').classList.remove('hidden');
+                document.getElementById('videoIframe').src = '';
+                currentStream = null;
+            }}
+
+            function minimizePlayer() {{
+                const player = document.getElementById('floatingPlayer');
+                isMinimized = !isMinimized;
+                player.classList.toggle('minimized', isMinimized);
+            }}
+
+            function togglePlayerSize() {{
+                const player = document.getElementById('floatingPlayer');
+                isExpanded = !isExpanded;
+                player.classList.toggle('expanded', isExpanded);
+            }}
+
+            function toggleChat() {{
+                const chatPanel = document.getElementById('chatPanel');
+                const giftPanel = document.getElementById('giftPanel');
+                giftPanel.classList.remove('show');
+                chatPanel.classList.toggle('show');
+            }}
+
+            function toggleGift() {{
+                const chatPanel = document.getElementById('chatPanel');
+                const giftPanel = document.getElementById('giftPanel');
+                chatPanel.classList.remove('show');
+                giftPanel.classList.toggle('show');
+            }}
+
+            function sendMessage() {{
+                const input = document.getElementById('chatInput');
+                const message = input.value.trim();
+                if (!message) return;
+
+                const messagesContainer = document.getElementById('chatMessages');
+                const newMessage = document.createElement('div');
+                newMessage.className = 'chat-message';
+                newMessage.innerHTML = `
+                    <div class="username">@you</div>
+                    <div class="text">${{message}}</div>
+                `;
+                messagesContainer.appendChild(newMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                input.value = '';
+            }}
+
+            function sendGift(emoji, amount) {{
+                alert(`Gift sent: ${{emoji}} (${{amount.toLocaleString()}} coins)`);
+
+                // Add to chat
+                const messagesContainer = document.getElementById('chatMessages');
+                const newMessage = document.createElement('div');
+                newMessage.className = 'chat-message';
+                newMessage.innerHTML = `
+                    <div class="username" style="color: #ff6b6b;">@you sent a gift!</div>
+                    <div class="text" style="font-size: 24px;">${{emoji}}</div>
+                `;
+                messagesContainer.appendChild(newMessage);
+
+                // Show chat panel
+                document.getElementById('giftPanel').classList.remove('show');
+                document.getElementById('chatPanel').classList.add('show');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }}
+
+            // Handle enter key for chat
+            document.addEventListener('DOMContentLoaded', function() {{
+                initStreamList();
+
+                document.getElementById('chatInput').addEventListener('keypress', function(e) {{
+                    if (e.key === 'Enter') {{
+                        sendMessage();
+                    }}
+                }});
+            }});
+        </script>
+    </body>
+    </html>
     """
 
+    return html_content
+
 def main():
-    # Sidebar - Control Panel
-    with st.sidebar:
-        st.markdown("## 🎛️ Control Panel")
-        st.markdown("---")
-
-        # URL Input
-        st.markdown("### 🔗 Video URL")
-        url_option = st.selectbox(
-            "Pilih Sample atau Custom",
-            list(SAMPLE_URLS.keys()),
-            index=3  # Default to Custom URL
-        )
-
-        # Help text for supported URLs
-        with st.expander("📋 Format URL yang didukung"):
-            st.markdown("""
-            **YouTube:**
-            - `youtube.com/watch?v=xxxxx`
-            - `youtu.be/xxxxx`
-            - `youtube.com/live/xxxxx`
-
-            **Vimeo:**
-            - `vimeo.com/xxxxx`
-
-            **Twitch:**
-            - `twitch.tv/channel_name`
-            - `twitch.tv/videos/xxxxx`
-
-            **Lainnya:**
-            - Facebook Video
-            - Dailymotion
-            - Direct embed URL
-            """)
-
-        if url_option == "Custom URL":
-            raw_url = st.text_input(
-                "Masukkan URL video",
-                placeholder="https://www.youtube.com/watch?v=... atau link lainnya"
-            )
-            video_url = convert_to_embed_url(raw_url)
-
-            # Show URL conversion info
-            if raw_url:
-                url_info = get_url_info(raw_url)
-                st.markdown(f"**Platform:** {url_info['icon']} {url_info['platform']}")
-
-                if raw_url != video_url:
-                    st.success("✅ URL berhasil dikonversi ke format embed!")
-                    with st.expander("Lihat URL embed"):
-                        st.code(video_url, language=None)
-                else:
-                    st.info("URL sudah dalam format embed")
-        else:
-            video_url = SAMPLE_URLS[url_option]
-            if video_url:
-                st.code(video_url, language=None)
-
-        st.markdown("---")
-
-        # Aspect Ratio
-        st.markdown("### 📐 Aspect Ratio")
-        aspect_ratio = st.selectbox(
-            "Pilih ukuran video",
-            list(ASPECT_RATIOS.keys()),
-            index=0
-        )
-
-        st.markdown("---")
-
-        # Device Preview
-        st.markdown("### 📱 Device Preview")
-        device = st.selectbox(
-            "Simulasi perangkat",
-            list(DEVICE_WIDTHS.keys()),
-            index=0
-        )
-
-        st.markdown("---")
-
-        # Layout Options
-        st.markdown("### 🎨 Layout Options")
-        show_overlay = st.checkbox("Tampilkan Overlay", value=True)
-        show_browser_frame = st.checkbox("Tampilkan Browser Frame", value=True)
-        viewer_count = st.slider("Jumlah Viewer (simulasi)", 0, 10000, 1250)
-
-        st.markdown("---")
-
-        # Multi-stream toggle
-        st.markdown("### 📺 Multi-Stream Mode")
-        multi_stream = st.checkbox("Aktifkan Multi-Stream", value=False)
-        if multi_stream:
-            num_streams = st.slider("Jumlah Stream", 2, 4, 2)
-
-    # Main Content
-    # Header
+    # Hide Streamlit UI elements
     st.markdown("""
-    <div class="main-header">
-        <h1>📺 Livestream Video Wireframe</h1>
-        <p>Prototype Demo untuk Presentasi Client</p>
-    </div>
+        <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stApp > header {visibility: hidden;}
+            .block-container {
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            iframe {
+                border: none !important;
+            }
+        </style>
     """, unsafe_allow_html=True)
 
-    # Status indicators
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Device", device)
-    with col2:
-        st.metric("Aspect Ratio", aspect_ratio.split(" ")[0])
-    with col3:
-        st.metric("Status", "🟢 Live" if video_url else "⚪ Offline")
-    with col4:
-        st.metric("Viewers", f"{viewer_count:,}" if video_url else "-")
-
-    st.markdown("---")
-
-    # Video Preview Section
-    st.markdown("### 👁️ Live Preview")
-
-    # Calculate container width based on device
-    device_width = DEVICE_WIDTHS[device]
-
-    if not multi_stream:
-        # Single video mode
-        if device in ["Tablet", "Mobile"]:
-            # Center the video for mobile/tablet
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if show_browser_frame:
-                    st.markdown(render_browser_frame(video_url), unsafe_allow_html=True)
-
-                video_html = render_video_player(video_url, aspect_ratio, show_overlay, viewer_count)
-                components.html(f"""
-                <div style="max-width: {device_width}; margin: 0 auto; background: #1e1e2e; border-radius: 0 0 1rem 1rem; padding: 1rem;">
-                    {video_html}
-                </div>
-                """, height=500)
-        else:
-            # Full width for desktop/TV
-            if show_browser_frame:
-                st.markdown(render_browser_frame(video_url), unsafe_allow_html=True)
-
-            video_html = render_video_player(video_url, aspect_ratio, show_overlay, viewer_count)
-            components.html(f"""
-            <div style="background: #1e1e2e; border-radius: 0 0 1rem 1rem; padding: 1rem;">
-                {video_html}
-            </div>
-            """, height=600)
-    else:
-        # Multi-stream mode
-        st.markdown(f"**Mode: {num_streams} Stream Grid**")
-
-        if num_streams == 2:
-            cols = st.columns(2)
-            for i, col in enumerate(cols):
-                with col:
-                    st.markdown(f"**Stream {i+1}**")
-                    video_html = render_video_player(
-                        video_url if i == 0 else "",
-                        "16:9 (Widescreen)",
-                        show_overlay,
-                        viewer_count if i == 0 else 0
-                    )
-                    components.html(f"""
-                    <div style="background: #1e1e2e; border-radius: 1rem; padding: 0.5rem;">
-                        {video_html}
-                    </div>
-                    """, height=300)
-        else:
-            # 2x2 grid for 3-4 streams
-            for row in range(2):
-                cols = st.columns(2)
-                for col_idx, col in enumerate(cols):
-                    stream_idx = row * 2 + col_idx
-                    if stream_idx < num_streams:
-                        with col:
-                            st.markdown(f"**Stream {stream_idx + 1}**")
-                            video_html = render_video_player(
-                                video_url if stream_idx == 0 else "",
-                                "16:9 (Widescreen)",
-                                show_overlay,
-                                viewer_count if stream_idx == 0 else 0
-                            )
-                            components.html(f"""
-                            <div style="background: #1e1e2e; border-radius: 1rem; padding: 0.5rem;">
-                                {video_html}
-                            </div>
-                            """, height=280)
-
-    st.markdown("---")
-
-    # Features Section
-    st.markdown("### ✨ Fitur Utama")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("""
-        <div class="feature-card">
-            <div style="font-size: 2.5rem;">📱</div>
-            <h3>Responsive Design</h3>
-            <p>Video player otomatis menyesuaikan dengan ukuran layar. Support mobile, tablet, dan desktop.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("""
-        <div class="feature-card">
-            <div style="font-size: 2.5rem;">▶️</div>
-            <h3>Multiple Sources</h3>
-            <p>Support berbagai sumber video: YouTube Live, Vimeo, Twitch, atau custom RTMP stream.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="feature-card">
-            <div style="font-size: 2.5rem;">🎨</div>
-            <h3>Flexible Layout</h3>
-            <p>Pilih layout yang sesuai: single video, multi-grid, atau picture-in-picture mode.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # Embed Code Section
-    st.markdown("### 📝 Embed Code")
-
-    ratio_value = ASPECT_RATIOS[aspect_ratio]["ratio"]
-    embed_code = f"""<iframe
-  src="{video_url or 'YOUR_STREAM_URL'}"
-  width="100%"
-  style="aspect-ratio: {ratio_value};"
-  frameborder="0"
-  allowfullscreen
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-</iframe>"""
-
-    st.code(embed_code, language="html")
-
-    if st.button("📋 Copy Embed Code"):
-        st.success("Embed code copied! (Use Ctrl+C from the code block above)")
-
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: rgba(255,255,255,0.4); padding: 1rem;">
-        <p>Polymarket Indonesia - Livestream Video Wireframe Prototype</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Render the full-page Stake-style interface
+    components.html(render_stake_style_player(), height=900, scrolling=True)
 
 if __name__ == "__main__":
     main()
