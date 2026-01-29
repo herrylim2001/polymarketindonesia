@@ -96,34 +96,234 @@ def render_stake_style_player():
                 font-size: 14px;
             }}
 
-            /* Sample content cards */
-            .content-grid {{
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                gap: 16px;
+            /* Category tabs */
+            .category-tabs {{
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+                overflow-x: auto;
+                padding-bottom: 4px;
             }}
 
-            .content-card {{
+            .category-tab {{
+                padding: 8px 18px;
+                border-radius: 20px;
+                border: none;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                background: #1a2c38;
+                color: #8b9caa;
+            }}
+
+            .category-tab:hover {{
+                background: #243442;
+                color: white;
+            }}
+
+            .category-tab.active {{
+                background: #00d4aa;
+                color: #0f1923;
+            }}
+
+            /* Game grid */
+            .game-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 14px;
+            }}
+
+            .game-card {{
                 background: #1a2c38;
                 border-radius: 12px;
-                padding: 20px;
+                overflow: hidden;
                 border: 1px solid #2a3f4d;
-                transition: all 0.2s;
+                transition: all 0.25s;
+                cursor: pointer;
+                position: relative;
             }}
 
-            .content-card:hover {{
+            .game-card:hover {{
                 border-color: #00d4aa;
-                transform: translateY(-2px);
+                transform: translateY(-4px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.4);
             }}
 
-            .content-card h3 {{
-                font-size: 16px;
-                margin-bottom: 8px;
+            .game-card:hover .game-overlay {{
+                opacity: 1;
             }}
 
-            .content-card p {{
-                color: #8b9caa;
+            .game-thumb {{
+                width: 100%;
+                aspect-ratio: 3/4;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 56px;
+                position: relative;
+            }}
+
+            .game-overlay {{
+                position: absolute;
+                inset: 0;
+                background: rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.25s;
+            }}
+
+            .play-btn {{
+                background: #00d4aa;
+                color: #0f1923;
+                border: none;
+                padding: 10px 24px;
+                border-radius: 8px;
+                font-weight: 700;
+                font-size: 14px;
+                cursor: pointer;
+            }}
+
+            .game-info {{
+                padding: 10px 12px;
+            }}
+
+            .game-info h4 {{
                 font-size: 13px;
+                margin-bottom: 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }}
+
+            .game-info .game-provider {{
+                font-size: 11px;
+                color: #8b9caa;
+            }}
+
+            .game-badges {{
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }}
+
+            .game-badge {{
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+            }}
+
+            .badge-hot {{
+                background: #ff4757;
+                color: white;
+            }}
+
+            .badge-new {{
+                background: #00d4aa;
+                color: #0f1923;
+            }}
+
+            .badge-jackpot {{
+                background: #ffa502;
+                color: #0f1923;
+            }}
+
+            .rtp-bar {{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 6px;
+            }}
+
+            .rtp-track {{
+                flex: 1;
+                height: 4px;
+                background: #2a3f4d;
+                border-radius: 2px;
+                overflow: hidden;
+            }}
+
+            .rtp-fill {{
+                height: 100%;
+                border-radius: 2px;
+                background: #00d4aa;
+            }}
+
+            .rtp-label {{
+                font-size: 10px;
+                color: #00d4aa;
+                font-weight: 600;
+                min-width: 42px;
+                text-align: right;
+            }}
+
+            /* Search bar */
+            .search-bar {{
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }}
+
+            .search-input {{
+                flex: 1;
+                background: #1a2c38;
+                border: 1px solid #2a3f4d;
+                border-radius: 10px;
+                padding: 12px 16px;
+                color: white;
+                font-size: 14px;
+            }}
+
+            .search-input:focus {{
+                outline: none;
+                border-color: #00d4aa;
+            }}
+
+            .search-input::placeholder {{
+                color: #5a7080;
+            }}
+
+            /* Provider banner */
+            .provider-banner {{
+                background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #1a1a2e 100%);
+                padding: 20px 24px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                border: 1px solid #3d2b7a;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }}
+
+            .provider-banner h2 {{
+                font-size: 20px;
+            }}
+
+            .provider-stats {{
+                display: flex;
+                gap: 24px;
+            }}
+
+            .provider-stat {{
+                text-align: center;
+            }}
+
+            .provider-stat .val {{
+                font-size: 18px;
+                font-weight: 700;
+                color: #00d4aa;
+            }}
+
+            .provider-stat .lbl {{
+                font-size: 11px;
+                color: #8b9caa;
             }}
 
             /* Floating Live Button */
@@ -655,30 +855,53 @@ def render_stake_style_player():
         </style>
     </head>
     <body>
-        <!-- Main Content (simulated page) -->
+        <!-- Main Content - Pragmatic Play Games -->
         <div class="main-content">
             <div class="content-header">
-                <h1>🎰 Polymarket Indonesia</h1>
-                <p>Platform prediksi terbaik di Indonesia - Nikmati live streaming sambil bermain!</p>
+                <h1>🎰 Pragmatic Play Games</h1>
+                <p>Koleksi lengkap game slot dan live casino terpopuler dari Pragmatic Play</p>
             </div>
 
-            <div class="content-grid">
-                <div class="content-card">
-                    <h3>🏆 Featured Market</h3>
-                    <p>Prediksi hasil pertandingan dan menangkan hadiah besar!</p>
+            <!-- Provider Banner -->
+            <div class="provider-banner">
+                <div>
+                    <h2>⚡ Pragmatic Play</h2>
+                    <p style="color:#8b9caa; font-size:13px; margin-top:4px;">Premium Game Provider</p>
                 </div>
-                <div class="content-card">
-                    <h3>📈 Trending Now</h3>
-                    <p>Lihat pasar yang sedang ramai diperdagangkan.</p>
+                <div class="provider-stats">
+                    <div class="provider-stat">
+                        <div class="val">300+</div>
+                        <div class="lbl">Games</div>
+                    </div>
+                    <div class="provider-stat">
+                        <div class="val">96.5%</div>
+                        <div class="lbl">Avg RTP</div>
+                    </div>
+                    <div class="provider-stat">
+                        <div class="val">🔥</div>
+                        <div class="lbl">#1 Provider</div>
+                    </div>
                 </div>
-                <div class="content-card">
-                    <h3>⏰ Ending Soon</h3>
-                    <p>Pasar yang akan segera ditutup. Jangan sampai ketinggalan!</p>
-                </div>
-                <div class="content-card">
-                    <h3>🔥 Hot Markets</h3>
-                    <p>Pasar dengan volume tertinggi hari ini.</p>
-                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="🔍 Cari game Pragmatic Play..." id="gameSearch" oninput="filterGames()">
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="category-tabs">
+                <button class="category-tab active" onclick="filterCategory('all', this)">🎮 Semua</button>
+                <button class="category-tab" onclick="filterCategory('hot', this)">🔥 Popular</button>
+                <button class="category-tab" onclick="filterCategory('new', this)">✨ Baru</button>
+                <button class="category-tab" onclick="filterCategory('jackpot', this)">💰 Jackpot</button>
+                <button class="category-tab" onclick="filterCategory('slot', this)">🎰 Slots</button>
+                <button class="category-tab" onclick="filterCategory('live', this)">🎥 Live Casino</button>
+                <button class="category-tab" onclick="filterCategory('table', this)">♠️ Table Games</button>
+            </div>
+
+            <!-- Game Grid -->
+            <div class="game-grid" id="gameGrid">
             </div>
         </div>
 
@@ -814,6 +1037,104 @@ def render_stake_style_player():
             let currentStream = null;
             let isExpanded = false;
             let isMinimized = false;
+            let currentCategory = 'all';
+
+            // Pragmatic Play Games Data
+            const games = [
+                {{ id: 'g1',  name: 'Gates of Olympus',         emoji: '⚡', bg: 'linear-gradient(135deg,#4a1a8a,#7b2ff7)', rtp: 96.50, category: 'slot', badge: 'hot' }},
+                {{ id: 'g2',  name: 'Sweet Bonanza',            emoji: '🍬', bg: 'linear-gradient(135deg,#e91e8c,#ff6bcb)', rtp: 96.48, category: 'slot', badge: 'hot' }},
+                {{ id: 'g3',  name: 'Starlight Princess',       emoji: '👸', bg: 'linear-gradient(135deg,#1a3a8a,#5b8fff)', rtp: 96.50, category: 'slot', badge: 'hot' }},
+                {{ id: 'g4',  name: 'Sugar Rush',               emoji: '🧁', bg: 'linear-gradient(135deg,#ff6b9d,#ff9a76)', rtp: 96.50, category: 'slot', badge: 'new' }},
+                {{ id: 'g5',  name: 'The Dog House',            emoji: '🐕', bg: 'linear-gradient(135deg,#2e7d32,#66bb6a)', rtp: 96.51, category: 'slot', badge: '' }},
+                {{ id: 'g6',  name: 'Big Bass Bonanza',         emoji: '🎣', bg: 'linear-gradient(135deg,#0277bd,#4fc3f7)', rtp: 96.71, category: 'slot', badge: 'hot' }},
+                {{ id: 'g7',  name: 'Wolf Gold',                emoji: '🐺', bg: 'linear-gradient(135deg,#bf360c,#ff7043)', rtp: 96.01, category: 'slot', badge: 'jackpot' }},
+                {{ id: 'g8',  name: 'Great Rhino Megaways',     emoji: '🦏', bg: 'linear-gradient(135deg,#8d6e00,#ffd54f)', rtp: 96.58, category: 'slot', badge: 'jackpot' }},
+                {{ id: 'g9',  name: 'Madame Destiny Megaways',  emoji: '🔮', bg: 'linear-gradient(135deg,#4a148c,#ab47bc)', rtp: 96.56, category: 'slot', badge: '' }},
+                {{ id: 'g10', name: 'Fruit Party',              emoji: '🍓', bg: 'linear-gradient(135deg,#ad1457,#ec407a)', rtp: 96.47, category: 'slot', badge: '' }},
+                {{ id: 'g11', name: 'Gates of Olympus 1000',    emoji: '🏛️', bg: 'linear-gradient(135deg,#311b92,#7c4dff)', rtp: 96.50, category: 'slot', badge: 'new' }},
+                {{ id: 'g12', name: 'Sweet Bonanza Xmas',       emoji: '🎄', bg: 'linear-gradient(135deg,#b71c1c,#ef5350)', rtp: 96.48, category: 'slot', badge: '' }},
+                {{ id: 'g13', name: 'Gems Bonanza',             emoji: '💎', bg: 'linear-gradient(135deg,#0d47a1,#42a5f5)', rtp: 96.51, category: 'slot', badge: '' }},
+                {{ id: 'g14', name: 'Wild West Gold',           emoji: '🤠', bg: 'linear-gradient(135deg,#e65100,#ff9800)', rtp: 96.51, category: 'slot', badge: '' }},
+                {{ id: 'g15', name: 'Aztec Gems',               emoji: '🗿', bg: 'linear-gradient(135deg,#1b5e20,#4caf50)', rtp: 96.52, category: 'slot', badge: 'jackpot' }},
+                {{ id: 'g16', name: 'Power of Thor Megaways',   emoji: '🔨', bg: 'linear-gradient(135deg,#1a237e,#536dfe)', rtp: 96.55, category: 'slot', badge: '' }},
+                {{ id: 'g17', name: 'Lucky Lightning',          emoji: '⚡', bg: 'linear-gradient(135deg,#f57f17,#ffee58)', rtp: 96.45, category: 'slot', badge: '' }},
+                {{ id: 'g18', name: 'Pyramid Bonanza',          emoji: '🏺', bg: 'linear-gradient(135deg,#bf8c00,#ffe082)', rtp: 96.50, category: 'slot', badge: 'new' }},
+                {{ id: 'g19', name: 'Mega Sic Bo',              emoji: '🎲', bg: 'linear-gradient(135deg,#880e4f,#f06292)', rtp: 97.22, category: 'live', badge: 'hot' }},
+                {{ id: 'g20', name: 'Live Roulette',            emoji: '🎡', bg: 'linear-gradient(135deg,#1b5e20,#43a047)', rtp: 97.30, category: 'live', badge: '' }},
+                {{ id: 'g21', name: 'Speed Baccarat',           emoji: '🃏', bg: 'linear-gradient(135deg,#b71c1c,#e53935)', rtp: 98.76, category: 'live', badge: 'hot' }},
+                {{ id: 'g22', name: 'Live Blackjack',           emoji: '♠️', bg: 'linear-gradient(135deg,#212121,#616161)', rtp: 99.28, category: 'live', badge: '' }},
+                {{ id: 'g23', name: 'Dragon Tiger',             emoji: '🐉', bg: 'linear-gradient(135deg,#c62828,#ff5252)', rtp: 96.27, category: 'live', badge: '' }},
+                {{ id: 'g24', name: 'Boom City',                emoji: '💥', bg: 'linear-gradient(135deg,#ff6f00,#ffa726)', rtp: 96.10, category: 'live', badge: 'new' }},
+                {{ id: 'g25', name: 'Sweet Bonanza CandyLand',  emoji: '🍭', bg: 'linear-gradient(135deg,#d81b60,#f48fb1)', rtp: 96.53, category: 'live', badge: '' }},
+                {{ id: 'g26', name: 'Baccarat',                 emoji: '💳', bg: 'linear-gradient(135deg,#4e342e,#8d6e63)', rtp: 98.76, category: 'table', badge: '' }},
+                {{ id: 'g27', name: 'European Roulette',        emoji: '🟢', bg: 'linear-gradient(135deg,#2e7d32,#81c784)', rtp: 97.30, category: 'table', badge: '' }},
+                {{ id: 'g28', name: 'Multihand Blackjack',      emoji: '🂡', bg: 'linear-gradient(135deg,#263238,#607d8b)', rtp: 99.54, category: 'table', badge: '' }},
+                {{ id: 'g29', name: 'Spaceman',                 emoji: '🚀', bg: 'linear-gradient(135deg,#0d0d2b,#1a1a5e)', rtp: 96.50, category: 'slot', badge: 'hot' }},
+                {{ id: 'g30', name: 'Cash Bonanza',             emoji: '💵', bg: 'linear-gradient(135deg,#1b5e20,#a5d6a7)', rtp: 96.50, category: 'slot', badge: '' }},
+            ];
+
+            // Render games
+            function renderGames(filteredGames) {{
+                const grid = document.getElementById('gameGrid');
+                grid.innerHTML = filteredGames.map(game => `
+                    <div class="game-card" data-category="${{game.category}}" data-badge="${{game.badge}}" data-name="${{game.name.toLowerCase()}}">
+                        <div class="game-thumb" style="background: ${{game.bg}};">
+                            <span>${{game.emoji}}</span>
+                            ${{game.badge ? `
+                            <div class="game-badges">
+                                <span class="game-badge badge-${{game.badge}}">${{
+                                    game.badge === 'hot' ? '🔥 HOT' :
+                                    game.badge === 'new' ? '✨ NEW' :
+                                    '💰 JACKPOT'
+                                }}</span>
+                            </div>` : ''}}
+                            <div class="game-overlay">
+                                <button class="play-btn">▶ PLAY</button>
+                            </div>
+                        </div>
+                        <div class="game-info">
+                            <h4>${{game.name}}</h4>
+                            <div class="game-provider">Pragmatic Play</div>
+                            <div class="rtp-bar">
+                                <div class="rtp-track">
+                                    <div class="rtp-fill" style="width: ${{game.rtp}}%;"></div>
+                                </div>
+                                <span class="rtp-label">${{game.rtp.toFixed(2)}}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }}
+
+            function filterCategory(category, el) {{
+                currentCategory = category;
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                if (el) el.classList.add('active');
+                applyFilters();
+            }}
+
+            function filterGames() {{
+                applyFilters();
+            }}
+
+            function applyFilters() {{
+                const search = document.getElementById('gameSearch').value.toLowerCase();
+                let filtered = games;
+
+                if (currentCategory !== 'all') {{
+                    if (['slot','live','table'].includes(currentCategory)) {{
+                        filtered = filtered.filter(g => g.category === currentCategory);
+                    }} else {{
+                        filtered = filtered.filter(g => g.badge === currentCategory);
+                    }}
+                }}
+
+                if (search) {{
+                    filtered = filtered.filter(g => g.name.toLowerCase().includes(search));
+                }}
+
+                renderGames(filtered);
+            }}
 
             // Initialize stream list
             function initStreamList() {{
@@ -938,6 +1259,7 @@ def render_stake_style_player():
             // Handle enter key for chat
             document.addEventListener('DOMContentLoaded', function() {{
                 initStreamList();
+                renderGames(games);
 
                 document.getElementById('chatInput').addEventListener('keypress', function(e) {{
                     if (e.key === 'Enter') {{
