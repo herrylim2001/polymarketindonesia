@@ -852,6 +852,558 @@ def render_stake_style_player():
             ::-webkit-scrollbar-thumb:hover {{
                 background: #3a5060;
             }}
+
+            /* ==========================================
+               RESPONSIVE BREAKPOINTS
+               ========================================== */
+
+            /* Large Desktop (1400px+) */
+            @media (min-width: 1400px) {{
+                .main-content {{
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    padding: 30px 40px;
+                    padding-bottom: 120px;
+                }}
+
+                .game-grid {{
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 18px;
+                }}
+
+                .game-thumb {{
+                    font-size: 64px;
+                }}
+
+                .content-header h1 {{
+                    font-size: 28px;
+                }}
+
+                .floating-player {{
+                    width: 450px;
+                }}
+
+                .floating-player.expanded {{
+                    width: 700px;
+                }}
+            }}
+
+            /* Desktop (1024px - 1399px) */
+            @media (min-width: 1024px) and (max-width: 1399px) {{
+                .game-grid {{
+                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                    gap: 14px;
+                }}
+            }}
+
+            /* Tablet (768px - 1023px) */
+            @media (min-width: 768px) and (max-width: 1023px) {{
+                .main-content {{
+                    padding: 16px;
+                    padding-bottom: 100px;
+                }}
+
+                .content-header {{
+                    padding: 20px;
+                }}
+
+                .content-header h1 {{
+                    font-size: 22px;
+                }}
+
+                .provider-banner {{
+                    padding: 16px 20px;
+                }}
+
+                .provider-banner h2 {{
+                    font-size: 18px;
+                }}
+
+                .provider-stats {{
+                    gap: 16px;
+                }}
+
+                .provider-stat .val {{
+                    font-size: 16px;
+                }}
+
+                .game-grid {{
+                    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                    gap: 12px;
+                }}
+
+                .game-thumb {{
+                    font-size: 48px;
+                }}
+
+                .game-info {{
+                    padding: 8px 10px;
+                }}
+
+                .game-info h4 {{
+                    font-size: 12px;
+                }}
+
+                .floating-player {{
+                    width: 360px;
+                }}
+
+                .floating-player.expanded {{
+                    width: 500px;
+                }}
+
+                .stream-list-popup {{
+                    width: 340px;
+                }}
+            }}
+
+            /* Mobile Large (480px - 767px) */
+            @media (min-width: 480px) and (max-width: 767px) {{
+                .main-content {{
+                    padding: 12px;
+                    padding-bottom: 90px;
+                }}
+
+                .content-header {{
+                    padding: 16px;
+                    margin-bottom: 14px;
+                }}
+
+                .content-header h1 {{
+                    font-size: 20px;
+                }}
+
+                .content-header p {{
+                    font-size: 13px;
+                }}
+
+                .provider-banner {{
+                    flex-direction: column;
+                    gap: 14px;
+                    align-items: flex-start;
+                    padding: 16px;
+                }}
+
+                .provider-stats {{
+                    width: 100%;
+                    justify-content: space-around;
+                }}
+
+                .category-tabs {{
+                    gap: 6px;
+                    margin-bottom: 14px;
+                    -webkit-overflow-scrolling: touch;
+                }}
+
+                .category-tab {{
+                    padding: 7px 14px;
+                    font-size: 12px;
+                }}
+
+                .search-input {{
+                    padding: 10px 14px;
+                    font-size: 13px;
+                }}
+
+                .game-grid {{
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                }}
+
+                .game-thumb {{
+                    font-size: 40px;
+                    aspect-ratio: 1/1;
+                }}
+
+                .game-info {{
+                    padding: 8px;
+                }}
+
+                .game-info h4 {{
+                    font-size: 11px;
+                }}
+
+                .game-info .game-provider {{
+                    font-size: 10px;
+                }}
+
+                .rtp-bar {{
+                    margin-top: 4px;
+                }}
+
+                .rtp-label {{
+                    font-size: 9px;
+                    min-width: 36px;
+                }}
+
+                /* Floating player - full width on mobile */
+                .floating-player {{
+                    left: 10px;
+                    right: 10px;
+                    bottom: 10px;
+                    width: auto;
+                }}
+
+                .floating-player.expanded {{
+                    width: auto;
+                }}
+
+                .floating-player.minimized {{
+                    width: auto;
+                    left: auto;
+                    right: 10px;
+                    width: 260px;
+                }}
+
+                .stream-list-popup {{
+                    left: 10px;
+                    right: 10px;
+                    width: auto;
+                    bottom: 70px;
+                }}
+
+                .floating-live-btn {{
+                    padding: 12px 20px;
+                    font-size: 13px;
+                }}
+
+                .gift-grid {{
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 8px;
+                }}
+
+                .gift-item {{
+                    padding: 10px 6px;
+                }}
+
+                .gift-item .emoji {{
+                    font-size: 22px;
+                }}
+
+                .gift-item .price {{
+                    font-size: 9px;
+                }}
+
+                .chat-messages {{
+                    height: 120px;
+                }}
+            }}
+
+            /* Mobile Small (< 480px) */
+            @media (max-width: 479px) {{
+                .main-content {{
+                    padding: 10px;
+                    padding-bottom: 80px;
+                }}
+
+                .content-header {{
+                    padding: 14px;
+                    margin-bottom: 12px;
+                    border-radius: 10px;
+                }}
+
+                .content-header h1 {{
+                    font-size: 18px;
+                }}
+
+                .content-header p {{
+                    font-size: 12px;
+                }}
+
+                .provider-banner {{
+                    flex-direction: column;
+                    gap: 12px;
+                    align-items: flex-start;
+                    padding: 14px;
+                    border-radius: 10px;
+                    margin-bottom: 12px;
+                }}
+
+                .provider-banner h2 {{
+                    font-size: 16px;
+                }}
+
+                .provider-stats {{
+                    width: 100%;
+                    justify-content: space-around;
+                }}
+
+                .provider-stat .val {{
+                    font-size: 15px;
+                }}
+
+                .provider-stat .lbl {{
+                    font-size: 10px;
+                }}
+
+                .search-bar {{
+                    margin-bottom: 12px;
+                }}
+
+                .search-input {{
+                    padding: 10px 12px;
+                    font-size: 13px;
+                    border-radius: 8px;
+                }}
+
+                .category-tabs {{
+                    gap: 6px;
+                    margin-bottom: 12px;
+                    -webkit-overflow-scrolling: touch;
+                }}
+
+                .category-tab {{
+                    padding: 6px 12px;
+                    font-size: 11px;
+                    border-radius: 16px;
+                }}
+
+                .game-grid {{
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 8px;
+                }}
+
+                .game-card {{
+                    border-radius: 10px;
+                }}
+
+                .game-thumb {{
+                    font-size: 36px;
+                    aspect-ratio: 1/1;
+                }}
+
+                .game-overlay .play-btn {{
+                    padding: 8px 18px;
+                    font-size: 12px;
+                }}
+
+                .game-badges {{
+                    top: 6px;
+                    left: 6px;
+                }}
+
+                .game-badge {{
+                    padding: 2px 6px;
+                    font-size: 9px;
+                }}
+
+                .game-info {{
+                    padding: 7px 8px;
+                }}
+
+                .game-info h4 {{
+                    font-size: 11px;
+                    margin-bottom: 2px;
+                }}
+
+                .game-info .game-provider {{
+                    font-size: 9px;
+                }}
+
+                .rtp-bar {{
+                    margin-top: 4px;
+                    gap: 4px;
+                }}
+
+                .rtp-track {{
+                    height: 3px;
+                }}
+
+                .rtp-label {{
+                    font-size: 8px;
+                    min-width: 32px;
+                }}
+
+                /* Floating elements - full width */
+                .floating-player {{
+                    left: 6px;
+                    right: 6px;
+                    bottom: 6px;
+                    width: auto;
+                    border-radius: 12px;
+                }}
+
+                .floating-player.expanded {{
+                    width: auto;
+                }}
+
+                .floating-player.minimized {{
+                    width: auto;
+                    left: auto;
+                    right: 6px;
+                    width: 220px;
+                }}
+
+                .player-header {{
+                    padding: 10px 12px;
+                }}
+
+                .player-title span {{
+                    font-size: 13px;
+                }}
+
+                .player-controls {{
+                    gap: 4px;
+                }}
+
+                .player-controls button {{
+                    padding: 4px;
+                    font-size: 14px;
+                }}
+
+                .stream-info-bar {{
+                    padding: 10px 12px;
+                }}
+
+                .stream-info-bar h4 {{
+                    font-size: 13px;
+                }}
+
+                .change-stream-btn {{
+                    padding: 8px;
+                    font-size: 12px;
+                }}
+
+                .player-actions {{
+                    padding: 10px 12px;
+                    gap: 8px;
+                }}
+
+                .action-btn {{
+                    padding: 10px 12px;
+                    font-size: 13px;
+                    border-radius: 8px;
+                }}
+
+                .action-btn .icon {{
+                    font-size: 16px;
+                }}
+
+                .stream-list-popup {{
+                    left: 6px;
+                    right: 6px;
+                    bottom: 60px;
+                    width: auto;
+                    max-height: 400px;
+                    border-radius: 12px;
+                }}
+
+                .popup-header {{
+                    padding: 12px 16px;
+                }}
+
+                .popup-header h3 {{
+                    font-size: 14px;
+                }}
+
+                .stream-item {{
+                    padding: 10px 14px;
+                    gap: 10px;
+                }}
+
+                .stream-thumb {{
+                    width: 40px;
+                    height: 40px;
+                    font-size: 20px;
+                    border-radius: 8px;
+                }}
+
+                .stream-info h4 {{
+                    font-size: 13px;
+                }}
+
+                .stream-meta {{
+                    font-size: 11px;
+                }}
+
+                .floating-live-btn {{
+                    padding: 10px 16px;
+                    font-size: 12px;
+                    gap: 8px;
+                    right: 10px;
+                    bottom: 10px;
+                    border-radius: 40px;
+                }}
+
+                .chat-panel {{
+                    padding: 12px;
+                }}
+
+                .chat-messages {{
+                    height: 100px;
+                }}
+
+                .chat-message .username {{
+                    font-size: 11px;
+                }}
+
+                .chat-message .text {{
+                    font-size: 12px;
+                }}
+
+                .chat-input {{
+                    padding: 8px 10px;
+                    font-size: 12px;
+                }}
+
+                .chat-send-btn {{
+                    padding: 8px 12px;
+                    font-size: 12px;
+                }}
+
+                .gift-panel {{
+                    padding: 12px;
+                }}
+
+                .gift-panel h4 {{
+                    font-size: 13px;
+                    margin-bottom: 10px;
+                }}
+
+                .gift-grid {{
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 6px;
+                }}
+
+                .gift-item {{
+                    padding: 8px 4px;
+                    border-radius: 8px;
+                }}
+
+                .gift-item .emoji {{
+                    font-size: 20px;
+                    margin-bottom: 4px;
+                }}
+
+                .gift-item .price {{
+                    font-size: 8px;
+                }}
+            }}
+
+            /* Touch device optimizations */
+            @media (hover: none) {{
+                .game-card:hover {{
+                    transform: none;
+                    box-shadow: none;
+                }}
+
+                .game-overlay {{
+                    opacity: 1;
+                    background: rgba(0,0,0,0.3);
+                }}
+
+                .game-card:active {{
+                    transform: scale(0.97);
+                }}
+
+                .floating-live-btn:hover {{
+                    transform: none;
+                }}
+
+                .floating-live-btn:active {{
+                    transform: scale(0.95);
+                }}
+            }}
         </style>
     </head>
     <body>
