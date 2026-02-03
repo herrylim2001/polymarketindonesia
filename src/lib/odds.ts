@@ -10,6 +10,9 @@ export interface OddsCalculation {
   decimalOdds: number;         // Odds desimal (misalnya 2.5)
   fractionalOdds: string;      // Odds fraksional (misalnya 3/2)
   americanOdds: string;        // Odds Amerika (misalnya +150 atau -200)
+  indonesianOdds: string;      // Odds Indonesia (misalnya 1.50 atau -1.50)
+  hongkongOdds: string;        // Odds Hong Kong (mirip desimal - 1)
+  malayOdds: string;           // Odds Malay (kebalikan Indo untuk underdog)
   impliedProbability: number;  // Probabilitas tersirat
   potentialPayout: number;     // Potensi pembayaran
   potentialProfit: number;     // Potensi keuntungan
@@ -43,6 +46,15 @@ export function probabilityToOdds(probability: number): OddsCalculation {
   // American odds
   const americanOdds = decimalToAmerican(decimalOdds);
 
+  // Indonesian odds (format Asia Tenggara)
+  const indonesianOdds = decimalToIndonesian(decimalOdds);
+
+  // Hong Kong odds (decimal - 1, selalu positif)
+  const hongkongOdds = decimalToHongkong(decimalOdds);
+
+  // Malay odds
+  const malayOdds = decimalToMalay(decimalOdds);
+
   // Implied probability (seharusnya sama dengan input, tapi bisa berbeda karena margin)
   const impliedProbability = (1 / decimalOdds) * 100;
 
@@ -51,6 +63,9 @@ export function probabilityToOdds(probability: number): OddsCalculation {
     decimalOdds: Math.round(decimalOdds * 100) / 100,
     fractionalOdds,
     americanOdds,
+    indonesianOdds,
+    hongkongOdds,
+    malayOdds,
     impliedProbability: Math.round(impliedProbability * 100) / 100,
     potentialPayout: 0,
     potentialProfit: 0,
@@ -127,6 +142,127 @@ function decimalToAmerican(decimal: number): string {
     // Negative odds
     const american = -100 / (decimal - 1);
     return `${Math.round(american)}`;
+  }
+}
+
+/**
+ * Konversi decimal odds ke Indonesian odds
+ *
+ * Format Odds Indonesia (umum dipakai di Asia Tenggara):
+ * - Positif (contoh 1.50): Taruhan underdog. Profit = taruhan × odds.
+ *   Taruhan Rp 100.000 odds 1.50 → profit Rp 150.000, total kembali Rp 250.000
+ * - Negatif (contoh -1.50): Taruhan favorit. Harus taruhan lebih besar.
+ *   Odds -1.50 → taruhan Rp 150.000 untuk profit Rp 100.000
+ *
+ * Rumus dari decimal:
+ *   Jika decimal >= 2.0 → Indo = +(decimal - 1)
+ *   Jika decimal < 2.0  → Indo = -1/(decimal - 1)
+ */
+function decimalToIndonesian(decimal: number): string {
+  if (decimal >= 2.0) {
+    const indo = decimal - 1;
+    return `+${indo.toFixed(2)}`;
+  } else {
+    const indo = -1 / (decimal - 1);
+    return `-${indo.toFixed(2)}`;
+  }
+}
+
+/**
+ * Konversi decimal odds ke Hong Kong odds
+ * HK odds = decimal odds - 1 (selalu positif)
+ * Contoh: decimal 2.50 → HK 1.50
+ */
+function decimalToHongkong(decimal: number): string {
+  const hk = decimal - 1;
+  return hk.toFixed(2);
+}
+
+/**
+ * Konversi decimal odds ke Malay odds
+ *
+ * Malay odds kebalikan dari Indonesian odds:
+ *   Jika decimal >= 2.0 → Malay = -1/(decimal - 1) (negatif, favorit)
+ *   Jika decimal < 2.0  → Malay = +(decimal - 1) (positif, underdog)
+ *
+ * Perspektif dari sisi "menang mudah" vs "menang sulit"
+ */
+function decimalToMalay(decimal: number): string {
+  if (decimal >= 2.0) {
+    const malay = -1 / (decimal - 1);
+    return malay.toFixed(2);
+  } else {
+    const malay = decimal - 1;
+    return `+${malay.toFixed(2)}`;
+  }
+}
+
+/**
+ * Hitung payout berdasarkan Indonesian odds
+ *
+ * @param betAmount - Jumlah taruhan dalam Rupiah
+ * @param indoOdds - Odds format Indonesia (number, bisa positif/negatif)
+ * @returns { totalReturn, profit, effectiveOdds }
+ */
+export function calculatePayoutIndonesian(
+  betAmount: number,
+  indoOdds: number
+): {
+  totalReturn: number;
+  profit: number;
+  effectiveOdds: number;
+  riskAmount: number;
+  description: string;
+} {
+  if (indoOdds > 0) {
+    // Positif: profit = taruhan × odds
+    const profit = betAmount * indoOdds;
+    return {
+      totalReturn: betAmount + profit,
+      profit: Math.round(profit),
+      effectiveOdds: indoOdds,
+      riskAmount: betAmount,
+      description: `Taruhan Rp ${betAmount.toLocaleString('id-ID')} × ${indoOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
+    };
+  } else {
+    // Negatif: profit = taruhan / |odds|
+    const absOdds = Math.abs(indoOdds);
+    const profit = betAmount / absOdds;
+    return {
+      totalReturn: betAmount + profit,
+      profit: Math.round(profit),
+      effectiveOdds: indoOdds,
+      riskAmount: betAmount,
+      description: `Taruhan Rp ${betAmount.toLocaleString('id-ID')} ÷ ${absOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
+    };
+  }
+}
+
+/**
+ * Konversi Indonesian odds ke probability
+ */
+export function indonesianOddsToProbability(indoOdds: number): number {
+  if (indoOdds > 0) {
+    // Positif: probability = 1 / (indoOdds + 1) × 100
+    return Math.round((1 / (indoOdds + 1)) * 10000) / 100;
+  } else {
+    // Negatif: probability = |indoOdds| / (|indoOdds| + 1) × 100
+    const absOdds = Math.abs(indoOdds);
+    return Math.round((absOdds / (absOdds + 1)) * 10000) / 100;
+  }
+}
+
+/**
+ * Konversi probability ke Indonesian odds (number)
+ */
+export function probabilityToIndonesianOdds(probability: number): number {
+  const prob = Math.max(1, Math.min(99, probability));
+  const decimal = 100 / prob;
+
+  if (decimal >= 2.0) {
+    return Math.round((decimal - 1) * 100) / 100;
+  } else {
+    return -Math.round((1 / (decimal - 1)) * 100) / 100;
   }
 }
 
@@ -345,6 +481,9 @@ export function formatOddsDisplay(probability: number): {
   decimal: string;
   fractional: string;
   american: string;
+  indonesian: string;
+  hongkong: string;
+  malay: string;
   multiplier: string;
 } {
   const odds = probabilityToOdds(probability);
@@ -353,6 +492,9 @@ export function formatOddsDisplay(probability: number): {
     decimal: odds.decimalOdds.toFixed(2),
     fractional: odds.fractionalOdds,
     american: odds.americanOdds,
+    indonesian: odds.indonesianOdds,
+    hongkong: odds.hongkongOdds,
+    malay: odds.malayOdds,
     multiplier: `${odds.decimalOdds.toFixed(2)}x`,
   };
 }

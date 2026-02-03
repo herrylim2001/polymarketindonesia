@@ -5,6 +5,7 @@ import { AlertCircle, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { Market, Outcome } from '@/types';
 import { useStore } from '@/store/useStore';
 import { formatIDR, calculatePayout, probabilityToOdds } from '@/lib/utils';
+import { probabilityToIndonesianOdds, calculatePayoutIndonesian } from '@/lib/odds';
 
 interface BettingPanelProps {
   market: Market;
@@ -118,7 +119,12 @@ export default function BettingPanel({ market }: BettingPanelProps) {
                 </div>
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-dark-400">
-                <span>Odds: {probabilityToOdds(outcome.probability)}x</span>
+                <span>
+                  Odds Indo: <span className={`font-medium ${probabilityToIndonesianOdds(outcome.probability) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {probabilityToIndonesianOdds(outcome.probability) > 0 ? '+' : ''}{probabilityToIndonesianOdds(outcome.probability).toFixed(2)}
+                  </span>
+                  {' '}| Desimal: {probabilityToOdds(outcome.probability)}x
+                </span>
                 <span>Volume: {formatIDR(outcome.volume)}</span>
               </div>
             </button>
@@ -171,24 +177,38 @@ export default function BettingPanel({ market }: BettingPanelProps) {
             </div>
 
             {/* Potential Payout */}
-            {amount && parseInt(amount) > 0 && (
-              <div className="bg-dark-700/50 rounded-lg p-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-dark-400">Potensi Pembayaran</span>
-                  <span className="text-white font-semibold">{formatIDR(potentialPayout)}</span>
+            {amount && parseInt(amount) > 0 && (() => {
+              const indoOdds = probabilityToIndonesianOdds(selectedOutcome.probability);
+              const indoPayout = calculatePayoutIndonesian(parseInt(amount) || 0, indoOdds);
+              return (
+                <div className="bg-dark-700/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-dark-400">Odds Indonesia</span>
+                    <span className={`font-bold text-base ${indoOdds > 0 ? 'text-green-500' : 'text-red-400'}`}>
+                      {indoOdds > 0 ? '+' : ''}{indoOdds.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-dark-400">Odds Desimal</span>
+                    <span className="text-primary-400 font-semibold">
+                      {probabilityToOdds(selectedOutcome.probability)}x
+                    </span>
+                  </div>
+                  <hr className="border-dark-600" />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-dark-400">Potensi Pembayaran</span>
+                    <span className="text-white font-semibold">{formatIDR(Math.round(indoPayout.totalReturn))}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-dark-400">Potensi Profit</span>
+                    <span className="text-green-500 font-semibold">+{formatIDR(indoPayout.profit)}</span>
+                  </div>
+                  <div className="mt-2 p-2 bg-dark-600/50 rounded text-xs text-dark-400">
+                    {indoPayout.description}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-dark-400">Potensi Profit</span>
-                  <span className="text-green-500 font-semibold">+{formatIDR(potentialProfit)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-dark-400">Odds</span>
-                  <span className="text-primary-400 font-semibold">
-                    {probabilityToOdds(selectedOutcome.probability)}x
-                  </span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 

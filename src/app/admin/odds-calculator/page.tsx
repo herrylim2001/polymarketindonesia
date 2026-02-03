@@ -16,6 +16,8 @@ import {
   ConstantProductMarketMaker,
   estimateProbabilityAfterBet,
   formatOddsDisplay,
+  probabilityToIndonesianOdds,
+  calculatePayoutIndonesian,
 } from '@/lib/odds';
 import { formatIDR } from '@/lib/utils';
 
@@ -137,8 +139,27 @@ export default function OddsCalculatorPage() {
             <div className="bg-dark-700/50 rounded-xl p-6 space-y-4">
               <h3 className="text-white font-medium mb-4">Hasil Kalkulasi</h3>
 
-              {/* Odds Formats */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Indonesian Odds - Primary Display */}
+              <div className="bg-gradient-to-r from-red-500/10 to-white/5 border border-red-500/20 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-red-400">Odds Indonesia</span>
+                  <span className="px-2 py-0.5 bg-red-500/20 text-red-300 text-[10px] rounded-full font-medium">UTAMA</span>
+                </div>
+                <p className={`text-3xl font-bold ${
+                  oddsFormats.indonesian.startsWith('+') ? 'text-green-500' : 'text-red-400'
+                }`}>
+                  {oddsFormats.indonesian}
+                </p>
+                <p className="text-dark-400 text-xs mt-2">
+                  {oddsFormats.indonesian.startsWith('+')
+                    ? `Taruhan Rp 100.000 → profit Rp ${Math.round(parseFloat(oddsFormats.indonesian) * 100000).toLocaleString('id-ID')}`
+                    : `Taruhan Rp ${Math.round(Math.abs(parseFloat(oddsFormats.indonesian)) * 100000).toLocaleString('id-ID')} → profit Rp 100.000`
+                  }
+                </p>
+              </div>
+
+              {/* All Odds Formats */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="bg-dark-600/50 rounded-lg p-3">
                   <p className="text-dark-400 text-xs mb-1">Odds Desimal</p>
                   <p className="text-white text-xl font-bold">{oddsFormats.decimal}</p>
@@ -146,6 +167,14 @@ export default function OddsCalculatorPage() {
                 <div className="bg-dark-600/50 rounded-lg p-3">
                   <p className="text-dark-400 text-xs mb-1">Multiplier</p>
                   <p className="text-primary-400 text-xl font-bold">{oddsFormats.multiplier}</p>
+                </div>
+                <div className="bg-dark-600/50 rounded-lg p-3">
+                  <p className="text-dark-400 text-xs mb-1">Odds Hong Kong</p>
+                  <p className="text-white text-xl font-bold">{oddsFormats.hongkong}</p>
+                </div>
+                <div className="bg-dark-600/50 rounded-lg p-3">
+                  <p className="text-dark-400 text-xs mb-1">Odds Malay</p>
+                  <p className="text-white text-xl font-bold">{oddsFormats.malay}</p>
                 </div>
                 <div className="bg-dark-600/50 rounded-lg p-3">
                   <p className="text-dark-400 text-xs mb-1">Odds Fraksional</p>
@@ -399,50 +428,97 @@ export default function OddsCalculatorPage() {
 
       {/* Odds Reference Table */}
       <div className="mt-8 bg-dark-800 rounded-xl border border-dark-700 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="text-lg font-semibold text-white mb-2">
           Tabel Referensi Odds
         </h2>
+        <p className="text-dark-400 text-sm mb-4">
+          Perbandingan format odds untuk berbagai probabilitas (taruhan Rp 100.000)
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-dark-700">
-                <th className="text-left px-4 py-3 text-dark-400 font-medium">Probabilitas</th>
+                <th className="text-left px-4 py-3 text-dark-400 font-medium">Prob.</th>
+                <th className="text-left px-4 py-3 text-red-400 font-medium">Indonesia</th>
+                <th className="text-left px-4 py-3 text-dark-400 font-medium">HK</th>
+                <th className="text-left px-4 py-3 text-dark-400 font-medium">Malay</th>
                 <th className="text-left px-4 py-3 text-dark-400 font-medium">Desimal</th>
-                <th className="text-left px-4 py-3 text-dark-400 font-medium">Fraksional</th>
                 <th className="text-left px-4 py-3 text-dark-400 font-medium">Amerika</th>
-                <th className="text-left px-4 py-3 text-dark-400 font-medium">Multiplier</th>
-                <th className="text-right px-4 py-3 text-dark-400 font-medium">
-                  Payout (Rp 100k)
-                </th>
+                <th className="text-right px-4 py-3 text-dark-400 font-medium">Profit</th>
+                <th className="text-right px-4 py-3 text-dark-400 font-medium">Total Kembali</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-700">
               {[90, 80, 70, 60, 50, 40, 30, 20, 10].map((prob) => {
                 const odds = formatOddsDisplay(prob);
-                const payout = calculateBetOutcome(100000, prob);
+                const indoOdds = probabilityToIndonesianOdds(prob);
+                const indoPayout = calculatePayoutIndonesian(100000, indoOdds);
                 return (
                   <tr key={prob} className="hover:bg-dark-700/50">
                     <td className="px-4 py-3">
-                      <span
-                        className={`font-medium ${
-                          prob >= 50 ? 'text-green-500' : 'text-red-500'
-                        }`}
-                      >
+                      <span className={`font-medium ${prob >= 50 ? 'text-green-500' : 'text-red-500'}`}>
                         {prob}%
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <span className={`font-bold ${indoOdds > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {indoOdds > 0 ? '+' : ''}{indoOdds.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-white">{odds.hongkong}</td>
+                    <td className="px-4 py-3 text-white">{odds.malay}</td>
                     <td className="px-4 py-3 text-white">{odds.decimal}</td>
-                    <td className="px-4 py-3 text-white">{odds.fractional}</td>
                     <td className="px-4 py-3 text-white">{odds.american}</td>
-                    <td className="px-4 py-3 text-primary-400 font-medium">{odds.multiplier}</td>
+                    <td className="px-4 py-3 text-right text-green-500 font-medium">
+                      +{formatIDR(indoPayout.profit)}
+                    </td>
                     <td className="px-4 py-3 text-right text-white">
-                      {formatIDR(payout.potentialPayout)}
+                      {formatIDR(Math.round(indoPayout.totalReturn))}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Penjelasan Odds Indonesia */}
+      <div className="mt-6 bg-dark-800 rounded-xl border border-dark-700 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">
+          Cara Baca Odds Indonesia
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-5">
+            <h3 className="text-green-400 font-bold text-lg mb-3">Odds Positif (+)</h3>
+            <p className="text-dark-300 text-sm mb-4">
+              Menunjukkan <strong className="text-white">profit</strong> yang didapat per unit taruhan. Biasanya untuk outcome yang dianggap kurang mungkin (underdog).
+            </p>
+            <div className="bg-dark-800 rounded-lg p-4 space-y-2">
+              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds +1.50</p>
+              <p className="text-white text-sm">Taruhan: <strong>Rp 100.000</strong></p>
+              <p className="text-white text-sm">Profit: Rp 100.000 x 1.50 = <strong className="text-green-400">Rp 150.000</strong></p>
+              <p className="text-white text-sm">Total kembali: <strong>Rp 250.000</strong></p>
+            </div>
+          </div>
+          <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-5">
+            <h3 className="text-red-400 font-bold text-lg mb-3">Odds Negatif (-)</h3>
+            <p className="text-dark-300 text-sm mb-4">
+              Menunjukkan <strong className="text-white">berapa yang harus ditaruhkan</strong> untuk profit 1 unit. Biasanya untuk outcome favorit.
+            </p>
+            <div className="bg-dark-800 rounded-lg p-4 space-y-2">
+              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds -1.50</p>
+              <p className="text-white text-sm">Taruhan: <strong>Rp 150.000</strong></p>
+              <p className="text-white text-sm">Profit: Rp 150.000 / 1.50 = <strong className="text-green-400">Rp 100.000</strong></p>
+              <p className="text-white text-sm">Total kembali: <strong>Rp 250.000</strong></p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-blue-300 text-sm">
+            <strong>Rumus Cepat:</strong> Odds positif → profit = taruhan × odds. Odds negatif → profit = taruhan ÷ |odds|.
+            Semakin besar angka positif, semakin besar potensi profit tapi semakin kecil kemungkinan menang.
+          </p>
         </div>
       </div>
     </div>
