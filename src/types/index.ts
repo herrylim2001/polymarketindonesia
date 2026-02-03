@@ -28,21 +28,37 @@ export interface Bet {
   id: string;
   marketId: string;
   outcomeId: string;
+  outcomeLabel: string;
+  marketTitle: string;
   userId: string;
   amount: number;
   probability: number; // probability at time of bet
   timestamp: string;
   potentialPayout: number;
+  status: 'active' | 'won' | 'lost' | 'cancelled';
 }
 
 export interface User {
   id: string;
   username: string;
+  email: string;
   balance: number;
   avatar?: string;
   totalBets: number;
   totalWins: number;
   totalProfit: number;
+  joinedAt: string;
+  bookmarks: string[];
+}
+
+export interface Notification {
+  id: string;
+  type: 'bet_placed' | 'market_resolved' | 'payout' | 'deposit' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  timestamp: string;
+  link?: string;
 }
 
 export type Category =

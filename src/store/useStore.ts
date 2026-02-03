@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { User, Bet, Market } from '@/types';
+import { persist } from 'zustand/middleware';
+import { User, Bet, Market, Notification } from '@/types';
 import { markets as initialMarkets } from '@/data/markets';
 import { generateId } from '@/lib/utils';
 
@@ -14,155 +15,339 @@ interface AppState {
   // Bets state
   userBets: Bet[];
 
-  // Actions
-  login: (username: string) => void;
+  // Notifications
+  notifications: Notification[];
+
+  // Actions - Auth
+  register: (username: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
+
+  // Actions - Betting
   placeBet: (marketId: string, outcomeId: string, amount: number) => boolean;
   updateMarketProbability: (marketId: string, outcomeId: string, betAmount: number) => void;
+
+  // Actions - Wallet
   addBalance: (amount: number) => void;
+  withdraw: (amount: number) => boolean;
+
+  // Actions - Bookmarks
+  toggleBookmark: (marketId: string) => void;
+
+  // Actions - Notifications
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  clearNotifications: () => void;
+
+  // Actions - Search
+  searchMarkets: (query: string) => Market[];
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  // Initial state
-  user: {
-    id: 'demo-user',
-    username: 'DemoUser',
-    balance: 10000000, // 10 juta rupiah starting balance
-    totalBets: 0,
-    totalWins: 0,
-    totalProfit: 0,
-  },
-  isLoggedIn: true,
-  markets: initialMarkets,
-  userBets: [],
+// Registered users storage (simulated)
+const registeredUsers: Array<{ username: string; email: string; password: string; id: string }> = [
+  { id: 'demo-user', username: 'DemoUser', email: 'demo@polyid.com', password: 'demo123' },
+];
 
-  // Actions
-  login: (username: string) => {
-    set({
-      user: {
-        id: generateId(),
-        username,
-        balance: 10000000,
-        totalBets: 0,
-        totalWins: 0,
-        totalProfit: 0,
-      },
-      isLoggedIn: true,
-    });
-  },
-
-  logout: () => {
-    set({
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
       user: null,
       isLoggedIn: false,
+      markets: initialMarkets,
       userBets: [],
-    });
-  },
+      notifications: [
+        {
+          id: 'welcome',
+          type: 'system',
+          title: 'Selamat datang di PolyID!',
+          message: 'Mulai prediksi berbagai event Indonesia dan dapatkan profit dari pengetahuan Anda.',
+          read: false,
+          timestamp: new Date().toISOString(),
+        },
+      ],
 
-  placeBet: (marketId: string, outcomeId: string, amount: number) => {
-    const { user, markets, userBets } = get();
+      // Auth Actions
+      register: (username: string, email: string, password: string) => {
+        const existing = registeredUsers.find(u => u.email === email);
+        if (existing) return false;
 
-    if (!user || user.balance < amount) {
-      return false;
-    }
+        const newUser = {
+          id: generateId(),
+          username,
+          email,
+          password,
+        };
+        registeredUsers.push(newUser);
 
-    const market = markets.find(m => m.id === marketId);
-    if (!market) return false;
+        set({
+          user: {
+            id: newUser.id,
+            username,
+            email,
+            balance: 10000000,
+            totalBets: 0,
+            totalWins: 0,
+            totalProfit: 0,
+            joinedAt: new Date().toISOString(),
+            bookmarks: [],
+          },
+          isLoggedIn: true,
+          notifications: [
+            {
+              id: generateId(),
+              type: 'system',
+              title: 'Selamat datang di PolyID!',
+              message: `Halo ${username}! Akun Anda berhasil dibuat. Anda mendapat saldo awal Rp 10.000.000 untuk mulai prediksi.`,
+              read: false,
+              timestamp: new Date().toISOString(),
+            },
+            {
+              id: generateId(),
+              type: 'deposit',
+              title: 'Bonus Pendaftaran',
+              message: 'Anda menerima Rp 10.000.000 sebagai bonus pendaftaran.',
+              read: false,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        });
 
-    const outcome = market.outcomes.find(o => o.id === outcomeId);
-    if (!outcome) return false;
+        return true;
+      },
 
-    // Calculate potential payout
-    const potentialPayout = Math.round(amount / (outcome.probability / 100));
+      login: (email: string, password: string) => {
+        const found = registeredUsers.find(u => u.email === email && u.password === password);
+        if (!found) return false;
 
-    // Create new bet
-    const newBet: Bet = {
-      id: generateId(),
-      marketId,
-      outcomeId,
-      userId: user.id,
-      amount,
-      probability: outcome.probability,
-      timestamp: new Date().toISOString(),
-      potentialPayout,
-    };
+        // Restore existing user or create fresh state
+        const { user: currentUser } = get();
+        if (currentUser && currentUser.id === found.id) {
+          set({ isLoggedIn: true });
+        } else {
+          set({
+            user: {
+              id: found.id,
+              username: found.username,
+              email: found.email,
+              balance: 10000000,
+              totalBets: 0,
+              totalWins: 0,
+              totalProfit: 0,
+              joinedAt: new Date().toISOString(),
+              bookmarks: [],
+            },
+            isLoggedIn: true,
+          });
+        }
 
-    // Update user balance
-    const updatedUser = {
-      ...user,
-      balance: user.balance - amount,
-      totalBets: user.totalBets + 1,
-    };
+        return true;
+      },
 
-    // Update market stats
-    get().updateMarketProbability(marketId, outcomeId, amount);
+      logout: () => {
+        set({
+          user: null,
+          isLoggedIn: false,
+        });
+      },
 
-    set({
-      user: updatedUser,
-      userBets: [...userBets, newBet],
-    });
+      // Betting
+      placeBet: (marketId: string, outcomeId: string, amount: number) => {
+        const { user, markets, userBets } = get();
 
-    return true;
-  },
+        if (!user || user.balance < amount) return false;
 
-  updateMarketProbability: (marketId: string, outcomeId: string, betAmount: number) => {
-    const { markets } = get();
+        const market = markets.find(m => m.id === marketId);
+        if (!market) return false;
 
-    const updatedMarkets = markets.map(market => {
-      if (market.id !== marketId) return market;
+        const outcome = market.outcomes.find(o => o.id === outcomeId);
+        if (!outcome) return false;
 
-      const totalNewVolume = market.totalVolume + betAmount;
+        const potentialPayout = Math.round(amount / (outcome.probability / 100));
 
-      // Update outcomes with new probability based on volume
-      const updatedOutcomes = market.outcomes.map(outcome => {
-        if (outcome.id === outcomeId) {
-          const newVolume = outcome.volume + betAmount;
-          const newTotalBets = outcome.totalBets + 1;
-          // Simple probability adjustment based on volume
-          const volumeRatio = newVolume / totalNewVolume;
-          const currentProbSum = market.outcomes.reduce((sum, o) => sum + o.probability, 0);
-          const adjustmentFactor = 0.1; // Small adjustment per bet
-          const newProbability = Math.min(95, Math.max(5,
-            outcome.probability + (adjustmentFactor * (volumeRatio * 100 - outcome.probability))
-          ));
+        const newBet: Bet = {
+          id: generateId(),
+          marketId,
+          outcomeId,
+          outcomeLabel: outcome.label,
+          marketTitle: market.title,
+          userId: user.id,
+          amount,
+          probability: outcome.probability,
+          timestamp: new Date().toISOString(),
+          potentialPayout,
+          status: 'active',
+        };
+
+        const updatedUser = {
+          ...user,
+          balance: user.balance - amount,
+          totalBets: user.totalBets + 1,
+        };
+
+        get().updateMarketProbability(marketId, outcomeId, amount);
+
+        const notification: Notification = {
+          id: generateId(),
+          type: 'bet_placed',
+          title: 'Taruhan Berhasil',
+          message: `Anda memasang Rp ${amount.toLocaleString('id-ID')} pada "${outcome.label}" di market "${market.title}"`,
+          read: false,
+          timestamp: new Date().toISOString(),
+          link: `/market/${marketId}`,
+        };
+
+        set({
+          user: updatedUser,
+          userBets: [newBet, ...userBets],
+          notifications: [notification, ...get().notifications],
+        });
+
+        return true;
+      },
+
+      updateMarketProbability: (marketId: string, outcomeId: string, betAmount: number) => {
+        const { markets } = get();
+
+        const updatedMarkets = markets.map(market => {
+          if (market.id !== marketId) return market;
+
+          const totalNewVolume = market.totalVolume + betAmount;
+
+          const updatedOutcomes = market.outcomes.map(outcome => {
+            if (outcome.id === outcomeId) {
+              const newVolume = outcome.volume + betAmount;
+              const newTotalBets = outcome.totalBets + 1;
+              const volumeRatio = newVolume / totalNewVolume;
+              const adjustmentFactor = 0.1;
+              const newProbability = Math.min(95, Math.max(5,
+                outcome.probability + (adjustmentFactor * (volumeRatio * 100 - outcome.probability))
+              ));
+
+              return {
+                ...outcome,
+                volume: newVolume,
+                totalBets: newTotalBets,
+                probability: Math.round(newProbability),
+              };
+            }
+            return outcome;
+          });
+
+          const probSum = updatedOutcomes.reduce((sum, o) => sum + o.probability, 0);
+          const normalizedOutcomes = updatedOutcomes.map(o => ({
+            ...o,
+            probability: Math.round((o.probability / probSum) * 100),
+          }));
 
           return {
-            ...outcome,
-            volume: newVolume,
-            totalBets: newTotalBets,
-            probability: Math.round(newProbability),
+            ...market,
+            totalVolume: totalNewVolume,
+            totalBets: market.totalBets + 1,
+            outcomes: normalizedOutcomes,
           };
-        }
-        return outcome;
-      });
+        });
 
-      // Normalize probabilities to sum to 100
-      const probSum = updatedOutcomes.reduce((sum, o) => sum + o.probability, 0);
-      const normalizedOutcomes = updatedOutcomes.map(o => ({
-        ...o,
-        probability: Math.round((o.probability / probSum) * 100),
-      }));
-
-      return {
-        ...market,
-        totalVolume: totalNewVolume,
-        totalBets: market.totalBets + 1,
-        outcomes: normalizedOutcomes,
-      };
-    });
-
-    set({ markets: updatedMarkets });
-  },
-
-  addBalance: (amount: number) => {
-    const { user } = get();
-    if (!user) return;
-
-    set({
-      user: {
-        ...user,
-        balance: user.balance + amount,
+        set({ markets: updatedMarkets });
       },
-    });
-  },
-}));
+
+      // Wallet
+      addBalance: (amount: number) => {
+        const { user, notifications } = get();
+        if (!user) return;
+
+        const notification: Notification = {
+          id: generateId(),
+          type: 'deposit',
+          title: 'Deposit Berhasil',
+          message: `Rp ${amount.toLocaleString('id-ID')} telah ditambahkan ke saldo Anda.`,
+          read: false,
+          timestamp: new Date().toISOString(),
+        };
+
+        set({
+          user: { ...user, balance: user.balance + amount },
+          notifications: [notification, ...notifications],
+        });
+      },
+
+      withdraw: (amount: number) => {
+        const { user } = get();
+        if (!user || user.balance < amount) return false;
+
+        set({
+          user: { ...user, balance: user.balance - amount },
+        });
+        return true;
+      },
+
+      // Bookmarks
+      toggleBookmark: (marketId: string) => {
+        const { user } = get();
+        if (!user) return;
+
+        const bookmarks = user.bookmarks.includes(marketId)
+          ? user.bookmarks.filter(id => id !== marketId)
+          : [...user.bookmarks, marketId];
+
+        set({
+          user: { ...user, bookmarks },
+        });
+      },
+
+      // Notifications
+      addNotification: (notification) => {
+        const newNotification: Notification = {
+          ...notification,
+          id: generateId(),
+          timestamp: new Date().toISOString(),
+          read: false,
+        };
+        set((state) => ({
+          notifications: [newNotification, ...state.notifications],
+        }));
+      },
+
+      markNotificationRead: (id: string) => {
+        set((state) => ({
+          notifications: state.notifications.map(n =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        }));
+      },
+
+      markAllNotificationsRead: () => {
+        set((state) => ({
+          notifications: state.notifications.map(n => ({ ...n, read: true })),
+        }));
+      },
+
+      clearNotifications: () => {
+        set({ notifications: [] });
+      },
+
+      // Search
+      searchMarkets: (query: string) => {
+        const { markets } = get();
+        const q = query.toLowerCase();
+        return markets.filter(
+          m =>
+            m.title.toLowerCase().includes(q) ||
+            m.description.toLowerCase().includes(q) ||
+            m.category.toLowerCase().includes(q) ||
+            m.outcomes.some(o => o.label.toLowerCase().includes(q))
+        );
+      },
+    }),
+    {
+      name: 'polyid-storage',
+      partialize: (state) => ({
+        user: state.user,
+        isLoggedIn: state.isLoggedIn,
+        userBets: state.userBets,
+        notifications: state.notifications,
+      }),
+    }
+  )
+);
