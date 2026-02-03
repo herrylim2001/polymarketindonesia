@@ -5,7 +5,7 @@ import { AlertCircle, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { Market, Outcome } from '@/types';
 import { useStore } from '@/store/useStore';
 import { formatIDR, calculatePayout, probabilityToOdds } from '@/lib/utils';
-import { probabilityToIndonesianOdds, calculatePayoutIndonesian } from '@/lib/odds';
+import { probabilityToIndonesianOdds, calculatePayoutIndonesian, validateBetAmount, validateProbability } from '@/lib/odds';
 
 interface BettingPanelProps {
   market: Market;
@@ -28,18 +28,23 @@ export default function BettingPanel({ market }: BettingPanelProps) {
     }
 
     const betAmount = parseInt(amount);
-    if (isNaN(betAmount) || betAmount <= 0) {
-      setError('Masukkan jumlah yang valid');
+
+    // Validasi jumlah taruhan dengan guard
+    const betValidation = validateBetAmount(betAmount);
+    if (!betValidation.valid) {
+      setError(betValidation.error || 'Jumlah taruhan tidak valid');
+      return;
+    }
+
+    // Validasi probabilitas outcome
+    const probValidation = validateProbability(selectedOutcome.probability);
+    if (!probValidation.valid) {
+      setError(`Odds tidak valid: ${probValidation.error}`);
       return;
     }
 
     if (!user || betAmount > user.balance) {
       setError('Saldo tidak mencukupi');
-      return;
-    }
-
-    if (betAmount < 10000) {
-      setError('Minimum taruhan Rp 10.000');
       return;
     }
 

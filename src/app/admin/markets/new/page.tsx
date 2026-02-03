@@ -450,7 +450,7 @@ export default function NewMarketPage() {
                         <div className="flex justify-between">
                           <span className="text-dark-400">Shares Didapat</span>
                           <span className="text-primary-400 font-medium">
-                            {betResult.sharesReceived.toLocaleString()}
+                            {betResult.sharesReceived.toLocaleString('id-ID')}
                           </span>
                         </div>
                         <div className="flex justify-between">

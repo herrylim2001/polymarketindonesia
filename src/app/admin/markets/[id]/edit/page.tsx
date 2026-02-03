@@ -243,7 +243,7 @@ export default function EditMarketPage() {
         </div>
         <div className="bg-dark-800 rounded-xl border border-dark-700 p-4">
           <p className="text-dark-400 text-sm">Total Taruhan</p>
-          <p className="text-xl font-bold text-white">{market.totalBets.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">{market.totalBets.toLocaleString('id-ID')}</p>
         </div>
         <div className="bg-dark-800 rounded-xl border border-dark-700 p-4">
           <p className="text-dark-400 text-sm">Outcomes</p>

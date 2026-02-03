@@ -135,7 +135,7 @@ export default function ReportsPage() {
             </span>
           </div>
           <p className="text-dark-400 text-sm">Total Taruhan</p>
-          <p className="text-2xl font-bold text-white">{totalBets.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-white">{totalBets.toLocaleString('id-ID')}</p>
         </div>
 
         <div className="bg-dark-800 rounded-xl border border-dark-700 p-6">
@@ -255,7 +255,7 @@ export default function ReportsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-white">{market.totalBets.toLocaleString()}</span>
+                      <span className="text-white">{market.totalBets.toLocaleString('id-ID')}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span

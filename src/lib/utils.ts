@@ -8,6 +8,14 @@ export function formatIDR(amount: number): string {
   }).format(amount);
 }
 
+// Format number dengan titik pemisah ribuan (tanpa simbol mata uang)
+export function formatNumber(num: number, decimals: number = 0): string {
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(num);
+}
+
 // Format number with K, M, B suffixes
 export function formatCompactNumber(num: number): string {
   if (num >= 1000000000) {

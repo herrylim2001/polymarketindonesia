@@ -244,7 +244,7 @@ export default function MarketsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="text-dark-300">{market.totalBets.toLocaleString()}</span>
+                      <span className="text-dark-300">{market.totalBets.toLocaleString('id-ID')}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-dark-300 text-sm">

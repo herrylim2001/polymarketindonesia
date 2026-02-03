@@ -3,7 +3,138 @@
  *
  * Sistem ini menggunakan model Automated Market Maker (AMM)
  * yang mirip dengan Polymarket asli.
+ *
+ * Standard odds yang didukung:
+ * - Indonesia: +0.01 s/d +99.00 (positif), -1.01 s/d -99.00 (negatif)
+ * - Desimal: 1.01 s/d 100.00
+ * - Hong Kong: 0.01 s/d 99.00
+ * - Malay: -0.01 s/d -1.00 atau +0.01 s/d +1.00
  */
+
+// ============================================================
+// VALIDASI & GUARD ODDS
+// ============================================================
+
+export interface OddsValidation {
+  valid: boolean;
+  error?: string;
+  correctedValue?: number;
+}
+
+/**
+ * Batas minimum dan maksimum untuk setiap format odds
+ */
+const ODDS_LIMITS = {
+  probability: { min: 1, max: 99 },
+  decimal: { min: 1.01, max: 100 },
+  indonesian: { minPositive: 0.01, maxPositive: 99, minNegative: -99, maxNegative: -1.01 },
+  hongkong: { min: 0.01, max: 99 },
+  malay: { minPositive: 0.01, maxPositive: 1, minNegative: -1, maxNegative: -0.01 },
+  american: { minPositive: 100, maxPositive: 9900, minNegative: -9900, maxNegative: -101 },
+} as const;
+
+/**
+ * Validasi probabilitas (1-99%)
+ */
+export function validateProbability(probability: number): OddsValidation {
+  if (typeof probability !== 'number' || isNaN(probability)) {
+    return { valid: false, error: 'Probabilitas harus berupa angka', correctedValue: 50 };
+  }
+  if (probability < ODDS_LIMITS.probability.min) {
+    return { valid: false, error: `Probabilitas minimum ${ODDS_LIMITS.probability.min}%`, correctedValue: ODDS_LIMITS.probability.min };
+  }
+  if (probability > ODDS_LIMITS.probability.max) {
+    return { valid: false, error: `Probabilitas maksimum ${ODDS_LIMITS.probability.max}%`, correctedValue: ODDS_LIMITS.probability.max };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validasi odds desimal (1.01 - 100.00)
+ */
+export function validateDecimalOdds(odds: number): OddsValidation {
+  if (typeof odds !== 'number' || isNaN(odds)) {
+    return { valid: false, error: 'Odds desimal harus berupa angka', correctedValue: 2.0 };
+  }
+  if (odds < ODDS_LIMITS.decimal.min) {
+    return { valid: false, error: `Odds desimal minimum ${ODDS_LIMITS.decimal.min}`, correctedValue: ODDS_LIMITS.decimal.min };
+  }
+  if (odds > ODDS_LIMITS.decimal.max) {
+    return { valid: false, error: `Odds desimal maksimum ${ODDS_LIMITS.decimal.max}`, correctedValue: ODDS_LIMITS.decimal.max };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validasi odds Indonesia
+ * Positif: +0.01 s/d +99.00 (underdog)
+ * Negatif: -1.01 s/d -99.00 (favorit)
+ * Tidak boleh: 0, atau antara -1.00 dan 0
+ */
+export function validateIndonesianOdds(odds: number): OddsValidation {
+  if (typeof odds !== 'number' || isNaN(odds)) {
+    return { valid: false, error: 'Odds Indonesia harus berupa angka', correctedValue: 1.0 };
+  }
+  if (odds === 0) {
+    return { valid: false, error: 'Odds Indonesia tidak boleh 0', correctedValue: 1.0 };
+  }
+  if (odds > 0) {
+    if (odds < ODDS_LIMITS.indonesian.minPositive) {
+      return { valid: false, error: `Odds positif minimum +${ODDS_LIMITS.indonesian.minPositive}`, correctedValue: ODDS_LIMITS.indonesian.minPositive };
+    }
+    if (odds > ODDS_LIMITS.indonesian.maxPositive) {
+      return { valid: false, error: `Odds positif maksimum +${ODDS_LIMITS.indonesian.maxPositive}`, correctedValue: ODDS_LIMITS.indonesian.maxPositive };
+    }
+  }
+  if (odds < 0) {
+    if (odds > ODDS_LIMITS.indonesian.maxNegative) {
+      return { valid: false, error: `Odds negatif harus lebih kecil dari ${ODDS_LIMITS.indonesian.maxNegative}`, correctedValue: ODDS_LIMITS.indonesian.maxNegative };
+    }
+    if (odds < ODDS_LIMITS.indonesian.minNegative) {
+      return { valid: false, error: `Odds negatif minimum ${ODDS_LIMITS.indonesian.minNegative}`, correctedValue: ODDS_LIMITS.indonesian.minNegative };
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Validasi bet amount
+ */
+export function validateBetAmount(amount: number, minBet: number = 10000, maxBet: number = 10000000): OddsValidation {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return { valid: false, error: 'Jumlah taruhan harus berupa angka', correctedValue: minBet };
+  }
+  if (amount < minBet) {
+    return { valid: false, error: `Taruhan minimum Rp ${minBet.toLocaleString('id-ID')}`, correctedValue: minBet };
+  }
+  if (amount > maxBet) {
+    return { valid: false, error: `Taruhan maksimum Rp ${maxBet.toLocaleString('id-ID')}`, correctedValue: maxBet };
+  }
+  return { valid: true };
+}
+
+/**
+ * Sanitize probability: clamp ke range valid dan return angka yang aman
+ */
+export function sanitizeProbability(probability: number): number {
+  if (typeof probability !== 'number' || isNaN(probability)) return 50;
+  return Math.max(ODDS_LIMITS.probability.min, Math.min(ODDS_LIMITS.probability.max, Math.round(probability * 100) / 100));
+}
+
+/**
+ * Sanitize Indonesian odds: clamp ke range valid
+ */
+export function sanitizeIndonesianOdds(odds: number): number {
+  if (typeof odds !== 'number' || isNaN(odds) || odds === 0) return 1.0;
+  if (odds > 0) {
+    return Math.max(ODDS_LIMITS.indonesian.minPositive, Math.min(ODDS_LIMITS.indonesian.maxPositive, Math.round(odds * 100) / 100));
+  }
+  return Math.max(ODDS_LIMITS.indonesian.minNegative, Math.min(ODDS_LIMITS.indonesian.maxNegative, Math.round(odds * 100) / 100));
+}
+
+// ============================================================
+// ODDS INTERFACES & CALCULATION
+// ============================================================
 
 export interface OddsCalculation {
   probability: number;          // Probabilitas dalam persen (0-100)
@@ -29,10 +160,11 @@ export interface MarketMakerState {
 
 /**
  * Konversi probabilitas ke berbagai format odds
+ * Probability di-sanitize otomatis ke range 1-99%
  */
 export function probabilityToOdds(probability: number): OddsCalculation {
-  // Pastikan probability valid
-  const prob = Math.max(1, Math.min(99, probability));
+  // Guard: sanitize probability ke range valid
+  const prob = sanitizeProbability(probability);
 
   // Price per share (sama dengan probabilitas / 100)
   const pricePerShare = prob / 100;
@@ -214,26 +346,30 @@ export function calculatePayoutIndonesian(
   riskAmount: number;
   description: string;
 } {
-  if (indoOdds > 0) {
+  // Guard: sanitize inputs
+  const safeBet = Math.max(0, betAmount || 0);
+  const safeOdds = sanitizeIndonesianOdds(indoOdds);
+
+  if (safeOdds > 0) {
     // Positif: profit = taruhan × odds
-    const profit = betAmount * indoOdds;
+    const profit = safeBet * safeOdds;
     return {
-      totalReturn: betAmount + profit,
+      totalReturn: safeBet + profit,
       profit: Math.round(profit),
-      effectiveOdds: indoOdds,
-      riskAmount: betAmount,
-      description: `Taruhan Rp ${betAmount.toLocaleString('id-ID')} × ${indoOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
+      effectiveOdds: safeOdds,
+      riskAmount: safeBet,
+      description: `Taruhan Rp ${safeBet.toLocaleString('id-ID')} × ${safeOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
     };
   } else {
     // Negatif: profit = taruhan / |odds|
-    const absOdds = Math.abs(indoOdds);
-    const profit = betAmount / absOdds;
+    const absOdds = Math.abs(safeOdds);
+    const profit = safeBet / absOdds;
     return {
-      totalReturn: betAmount + profit,
+      totalReturn: safeBet + profit,
       profit: Math.round(profit),
-      effectiveOdds: indoOdds,
-      riskAmount: betAmount,
-      description: `Taruhan Rp ${betAmount.toLocaleString('id-ID')} ÷ ${absOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
+      effectiveOdds: safeOdds,
+      riskAmount: safeBet,
+      description: `Taruhan Rp ${safeBet.toLocaleString('id-ID')} ÷ ${absOdds.toFixed(2)} = profit Rp ${Math.round(profit).toLocaleString('id-ID')}`,
     };
   }
 }
@@ -256,13 +392,17 @@ export function indonesianOddsToProbability(indoOdds: number): number {
  * Konversi probability ke Indonesian odds (number)
  */
 export function probabilityToIndonesianOdds(probability: number): number {
-  const prob = Math.max(1, Math.min(99, probability));
+  const prob = sanitizeProbability(probability);
   const decimal = 100 / prob;
 
   if (decimal >= 2.0) {
-    return Math.round((decimal - 1) * 100) / 100;
+    // Underdog: odds positif
+    const odds = Math.round((decimal - 1) * 100) / 100;
+    return Math.min(odds, ODDS_LIMITS.indonesian.maxPositive);
   } else {
-    return -Math.round((1 / (decimal - 1)) * 100) / 100;
+    // Favorit: odds negatif
+    const odds = -Math.round((1 / (decimal - 1)) * 100) / 100;
+    return Math.max(odds, ODDS_LIMITS.indonesian.minNegative);
   }
 }
 

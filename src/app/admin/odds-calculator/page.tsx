@@ -199,7 +199,7 @@ export default function OddsCalculatorPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-dark-400">Shares Didapat</span>
                   <span className="text-white font-medium">
-                    {basicOdds.sharesReceived.toLocaleString()}
+                    {basicOdds.sharesReceived.toLocaleString('id-ID')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -382,7 +382,7 @@ export default function OddsCalculatorPage() {
                   <div className="p-3 bg-dark-700 rounded-lg">
                     <p className="text-dark-400 text-xs mb-1">Shares Didapat</p>
                     <p className="text-white font-bold">
-                      {ammResult.simulation.sharesReceived.toLocaleString()}
+                      {ammResult.simulation.sharesReceived.toLocaleString('id-ID')}
                     </p>
                   </div>
                   <div className="p-3 bg-dark-700 rounded-lg">
