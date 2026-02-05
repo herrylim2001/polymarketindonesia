@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { TrendingUp, Clock, Users, BarChart3 } from 'lucide-react';
 import { Market } from '@/types';
 import { formatCompactNumber, formatTimeRemaining, getProbabilityColor } from '@/lib/utils';
+import { probabilityToIndonesianOdds } from '@/lib/odds';
 
 interface MarketCardProps {
   market: Market;
@@ -105,6 +106,20 @@ export default function MarketCard({ market, compact = false }: MarketCardProps)
                 +{market.outcomes.length - 2} pilihan lainnya
               </p>
             )}
+          </div>
+
+          {/* Indo Odds Badge */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {market.outcomes.slice(0, 2).map(o => {
+              const indoOdds = probabilityToIndonesianOdds(o.probability);
+              return (
+                <span key={o.id} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  indoOdds > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                }`}>
+                  {o.label}: {indoOdds > 0 ? '+' : ''}{indoOdds.toFixed(2)}
+                </span>
+              );
+            })}
           </div>
 
           {/* Stats */}

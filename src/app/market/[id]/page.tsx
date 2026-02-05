@@ -1,18 +1,28 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Users, BarChart3, Share2, Bookmark, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Clock, Users, BarChart3, Share2, Bookmark, BookmarkCheck, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import BettingPanel from '@/components/BettingPanel';
 import MarketCard from '@/components/MarketCard';
-import { formatIDR, formatDate, formatTimeRemaining, formatCompactNumber, probabilityToOdds } from '@/lib/utils';
+import OddsHistoryChart from '@/components/OddsHistoryChart';
+import LiveActivityFeed from '@/components/LiveActivityFeed';
+import MarketComments from '@/components/MarketComments';
+import ShareModal from '@/components/ShareModal';
+import { formatIDR, formatDate, formatTimeRemaining, formatCompactNumber } from '@/lib/utils';
+import { probabilityToIndonesianOdds } from '@/lib/odds';
 import { CATEGORIES } from '@/types';
 import Link from 'next/link';
 
 export default function MarketDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { markets } = useStore();
+  const { markets, user, isLoggedIn, toggleBookmark } = useStore();
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const market = markets.find(m => m.id === params.id);
 
@@ -38,8 +48,9 @@ export default function MarketDetailPage() {
     .filter(m => m.category === market.category && m.id !== market.id)
     .slice(0, 3);
 
-  // Sort outcomes by probability
   const sortedOutcomes = [...market.outcomes].sort((a, b) => b.probability - a.probability);
+  const isBookmarked = mounted && user?.bookmarks?.includes(market.id);
+  const marketUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -79,11 +90,30 @@ export default function MarketDetailPage() {
 
               {/* Actions */}
               <div className="absolute top-4 right-4 flex items-center gap-2">
-                <button className="p-2 bg-dark-800/80 hover:bg-dark-700 rounded-lg transition-colors">
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="p-2 bg-dark-800/80 hover:bg-dark-700 rounded-lg transition-colors"
+                  title="Bagikan"
+                >
                   <Share2 className="w-5 h-5 text-white" />
                 </button>
-                <button className="p-2 bg-dark-800/80 hover:bg-dark-700 rounded-lg transition-colors">
-                  <Bookmark className="w-5 h-5 text-white" />
+                <button
+                  onClick={() => {
+                    if (isLoggedIn) toggleBookmark(market.id);
+                    else router.push('/auth');
+                  }}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isBookmarked
+                      ? 'bg-primary-500/20 hover:bg-primary-500/30'
+                      : 'bg-dark-800/80 hover:bg-dark-700'
+                  }`}
+                  title={isBookmarked ? 'Hapus Bookmark' : 'Bookmark'}
+                >
+                  {isBookmarked ? (
+                    <BookmarkCheck className="w-5 h-5 text-primary-400" />
+                  ) : (
+                    <Bookmark className="w-5 h-5 text-white" />
+                  )}
                 </button>
               </div>
 
@@ -112,10 +142,10 @@ export default function MarketDetailPage() {
             {/* Description */}
             <div className="p-6 border-t border-dark-700">
               <h3 className="text-white font-semibold mb-2">Deskripsi</h3>
-              <p className="text-dark-400">{market.description}</p>
+              <p className="text-dark-300">{market.description}</p>
 
               {market.source && (
-                <div className="mt-4 flex items-center gap-2 text-sm text-dark-500">
+                <div className="mt-4 flex items-center gap-2 text-sm text-dark-400">
                   <ExternalLink className="w-4 h-4" />
                   <span>Sumber: {market.source}</span>
                 </div>
@@ -123,55 +153,67 @@ export default function MarketDetailPage() {
             </div>
           </div>
 
+          {/* Odds History Chart */}
+          <div className="mb-6">
+            <OddsHistoryChart market={market} />
+          </div>
+
           {/* Outcomes Detail */}
           <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 mb-6">
             <h3 className="text-white font-semibold text-lg mb-4">Probabilitas Outcomes</h3>
 
             <div className="space-y-4">
-              {sortedOutcomes.map((outcome, index) => (
-                <div
-                  key={outcome.id}
-                  className="bg-dark-700/50 rounded-xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 bg-dark-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {index + 1}
-                      </span>
-                      <span className="text-white font-medium">{outcome.label}</span>
+              {sortedOutcomes.map((outcome, index) => {
+                const indoOdds = probabilityToIndonesianOdds(outcome.probability);
+                return (
+                  <div
+                    key={outcome.id}
+                    className="bg-dark-700/50 rounded-xl p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 bg-dark-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {index + 1}
+                        </span>
+                        <span className="text-white font-medium">{outcome.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {outcome.probability >= 50 ? (
+                          <TrendingUp className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <TrendingDown className="w-5 h-5 text-red-500" />
+                        )}
+                        <span className={`text-2xl font-bold ${
+                          outcome.probability >= 50 ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {outcome.probability}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {outcome.probability >= 50 ? (
-                        <TrendingUp className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <TrendingDown className="w-5 h-5 text-red-500" />
-                      )}
-                      <span className={`text-2xl font-bold ${
-                        outcome.probability >= 50 ? 'text-green-500' : 'text-red-500'
-                      }`}>
-                        {outcome.probability}%
+
+                    {/* Progress Bar */}
+                    <div className="h-3 bg-dark-600 rounded-full overflow-hidden mb-3">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          outcome.probability >= 50 ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${outcome.probability}%` }}
+                      />
+                    </div>
+
+                    {/* Stats with Indo odds */}
+                    <div className="flex items-center justify-between text-sm text-dark-400">
+                      <span>
+                        Odds Indo: <span className={`font-medium ${indoOdds > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {indoOdds > 0 ? '+' : ''}{indoOdds.toFixed(2)}
+                        </span>
                       </span>
+                      <span>Volume: <span className="text-white font-medium">{formatIDR(outcome.volume)}</span></span>
+                      <span>Taruhan: <span className="text-white font-medium">{formatCompactNumber(outcome.totalBets)}</span></span>
                     </div>
                   </div>
-
-                  {/* Progress Bar */}
-                  <div className="h-3 bg-dark-600 rounded-full overflow-hidden mb-3">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        outcome.probability >= 50 ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${outcome.probability}%` }}
-                    />
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between text-sm text-dark-400">
-                    <span>Odds: <span className="text-white font-medium">{probabilityToOdds(outcome.probability)}x</span></span>
-                    <span>Volume: <span className="text-white font-medium">{formatIDR(outcome.volume)}</span></span>
-                    <span>Taruhan: <span className="text-white font-medium">{formatCompactNumber(outcome.totalBets)}</span></span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -183,7 +225,7 @@ export default function MarketDetailPage() {
               <div className="bg-dark-700/50 rounded-lg p-4">
                 <p className="text-dark-400 text-sm mb-1">Status</p>
                 <p className="text-white font-semibold capitalize">
-                  {market.status === 'active' ? '🟢 Aktif' : market.status === 'resolved' ? '✅ Selesai' : '⏳ Pending'}
+                  {market.status === 'active' ? 'Aktif' : market.status === 'resolved' ? 'Selesai' : 'Pending'}
                 </p>
               </div>
               <div className="bg-dark-700/50 rounded-lg p-4">
@@ -199,6 +241,16 @@ export default function MarketDetailPage() {
                 <p className="text-white font-semibold">{category?.icon} {category?.name}</p>
               </div>
             </div>
+          </div>
+
+          {/* Live Activity Feed */}
+          <div className="mb-6">
+            <LiveActivityFeed />
+          </div>
+
+          {/* Comments / Discussion */}
+          <div className="mb-6">
+            <MarketComments marketId={market.id} />
           </div>
 
           {/* Related Markets */}
@@ -222,7 +274,7 @@ export default function MarketDetailPage() {
             {/* How it Works */}
             <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 mt-6">
               <h3 className="text-white font-semibold mb-4">Cara Kerja</h3>
-              <ol className="space-y-3 text-sm text-dark-400">
+              <ol className="space-y-3 text-sm text-dark-300">
                 <li className="flex gap-3">
                   <span className="w-6 h-6 bg-primary-500/20 text-primary-500 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs">1</span>
                   <span>Pilih outcome yang Anda prediksi akan terjadi</span>
@@ -240,6 +292,14 @@ export default function MarketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={market.title}
+        url={marketUrl}
+      />
     </div>
   );
 }

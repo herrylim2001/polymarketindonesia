@@ -14,7 +14,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const { user, isLoggedIn, notifications, logout, markNotificationRead } = useStore();
+  const { user, isLoggedIn, notifications, logout, markNotificationRead, markAllNotificationsRead, clearNotifications } = useStore();
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -109,10 +109,37 @@ export default function Header() {
 
                 {showNotifications && (
                   <div className="absolute right-0 top-full mt-2 w-80 bg-dark-800 border border-dark-700 rounded-xl shadow-2xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-dark-700 flex items-center justify-between">
-                      <h3 className="text-white font-semibold">Notifikasi</h3>
-                      {unreadCount > 0 && (
-                        <span className="text-xs text-primary-400">{unreadCount} belum dibaca</span>
+                    <div className="px-4 py-3 border-b border-dark-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-white font-semibold">Notifikasi</h3>
+                        {unreadCount > 0 && (
+                          <span className="text-xs text-primary-400">{unreadCount} belum dibaca</span>
+                        )}
+                      </div>
+                      {notifications.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAllNotificationsRead();
+                              }}
+                              className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                            >
+                              Tandai semua dibaca
+                            </button>
+                          )}
+                          <span className="text-dark-600">|</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              clearNotifications();
+                            }}
+                            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            Hapus semua
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">

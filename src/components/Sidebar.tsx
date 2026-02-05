@@ -4,6 +4,38 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, TrendingUp, Star, Clock, BarChart2 } from 'lucide-react';
 import { CATEGORIES } from '@/types';
+import { useStore } from '@/store/useStore';
+import { formatCompactNumber } from '@/lib/utils';
+
+function SidebarStats() {
+  const { markets } = useStore();
+  const activeMarkets = markets.filter(m => m.status === 'active');
+  const totalVolume = markets.reduce((sum, m) => sum + m.totalVolume, 0);
+  const totalBets = markets.reduce((sum, m) => sum + m.totalBets, 0);
+
+  return (
+    <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart2 className="w-5 h-5 text-white" />
+        <h3 className="text-white font-semibold">Statistik Platform</h3>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <p className="text-primary-200 text-xs">Total Volume</p>
+          <p className="text-white font-bold text-lg">Rp {formatCompactNumber(totalVolume)}</p>
+        </div>
+        <div>
+          <p className="text-primary-200 text-xs">Total Markets</p>
+          <p className="text-white font-bold text-lg">{activeMarkets.length} Aktif</p>
+        </div>
+        <div>
+          <p className="text-primary-200 text-xs">Total Prediksi</p>
+          <p className="text-white font-bold text-lg">{formatCompactNumber(totalBets)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -72,26 +104,7 @@ export default function Sidebar() {
         </div>
 
         {/* Stats Card */}
-        <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart2 className="w-5 h-5 text-white" />
-            <h3 className="text-white font-semibold">Statistik Platform</h3>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <p className="text-primary-200 text-xs">Total Volume</p>
-              <p className="text-white font-bold text-lg">Rp 180.2 M</p>
-            </div>
-            <div>
-              <p className="text-primary-200 text-xs">Total Markets</p>
-              <p className="text-white font-bold text-lg">18 Aktif</p>
-            </div>
-            <div>
-              <p className="text-primary-200 text-xs">Total Traders</p>
-              <p className="text-white font-bold text-lg">125.4 Rb</p>
-            </div>
-          </div>
-        </div>
+        <SidebarStats />
       </div>
     </aside>
   );
