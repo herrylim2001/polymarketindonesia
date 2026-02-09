@@ -53,13 +53,83 @@ export interface User {
 
 export interface Notification {
   id: string;
-  type: 'bet_placed' | 'market_resolved' | 'payout' | 'deposit' | 'system';
+  type: 'bet_placed' | 'market_resolved' | 'payout' | 'deposit' | 'withdrawal' | 'system';
   title: string;
   message: string;
   read: boolean;
   timestamp: string;
   link?: string;
 }
+
+export type PaymentMethod =
+  | 'bank_transfer'
+  | 'virtual_account'
+  | 'ewallet'
+  | 'qris';
+
+export type BankCode =
+  | 'bca' | 'bni' | 'bri' | 'mandiri'
+  | 'cimb' | 'permata' | 'bsi' | 'danamon';
+
+export type EwalletCode =
+  | 'dana' | 'ovo' | 'gopay' | 'shopeepay' | 'linkaja';
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'deposit' | 'withdrawal';
+  amount: number;
+  fee: number;
+  totalAmount: number;
+  paymentMethod: PaymentMethod;
+  bankCode?: BankCode;
+  ewalletCode?: EwalletCode;
+  virtualAccountNumber?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'expired';
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string;
+  paidAt?: string;
+  reference?: string;
+}
+
+export interface BankInfo {
+  code: BankCode;
+  name: string;
+  shortName: string;
+  logo: string;
+  color: string;
+  adminFee: number;
+}
+
+export interface EwalletInfo {
+  code: EwalletCode;
+  name: string;
+  logo: string;
+  color: string;
+  adminFee: number;
+  minAmount: number;
+  maxAmount: number;
+}
+
+export const BANKS: BankInfo[] = [
+  { code: 'bca', name: 'Bank Central Asia', shortName: 'BCA', logo: '/banks/bca.png', color: 'bg-blue-600', adminFee: 0 },
+  { code: 'bni', name: 'Bank Negara Indonesia', shortName: 'BNI', logo: '/banks/bni.png', color: 'bg-orange-500', adminFee: 0 },
+  { code: 'bri', name: 'Bank Rakyat Indonesia', shortName: 'BRI', logo: '/banks/bri.png', color: 'bg-blue-800', adminFee: 0 },
+  { code: 'mandiri', name: 'Bank Mandiri', shortName: 'Mandiri', logo: '/banks/mandiri.png', color: 'bg-blue-900', adminFee: 0 },
+  { code: 'cimb', name: 'CIMB Niaga', shortName: 'CIMB', logo: '/banks/cimb.png', color: 'bg-red-600', adminFee: 0 },
+  { code: 'permata', name: 'Bank Permata', shortName: 'Permata', logo: '/banks/permata.png', color: 'bg-green-600', adminFee: 0 },
+  { code: 'bsi', name: 'Bank Syariah Indonesia', shortName: 'BSI', logo: '/banks/bsi.png', color: 'bg-teal-600', adminFee: 0 },
+  { code: 'danamon', name: 'Bank Danamon', shortName: 'Danamon', logo: '/banks/danamon.png', color: 'bg-yellow-500', adminFee: 0 },
+];
+
+export const EWALLETS: EwalletInfo[] = [
+  { code: 'dana', name: 'DANA', logo: '/ewallets/dana.png', color: 'bg-blue-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
+  { code: 'ovo', name: 'OVO', logo: '/ewallets/ovo.png', color: 'bg-purple-600', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
+  { code: 'gopay', name: 'GoPay', logo: '/ewallets/gopay.png', color: 'bg-green-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
+  { code: 'shopeepay', name: 'ShopeePay', logo: '/ewallets/shopeepay.png', color: 'bg-orange-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
+  { code: 'linkaja', name: 'LinkAja', logo: '/ewallets/linkaja.png', color: 'bg-red-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
+];
 
 export type Category =
   | 'politik'

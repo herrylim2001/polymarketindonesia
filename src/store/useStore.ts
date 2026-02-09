@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, Bet, Market, Notification } from '@/types';
+import { User, Bet, Market, Notification, Transaction, PaymentMethod, BankCode, EwalletCode } from '@/types';
 import { markets as initialMarkets } from '@/data/markets';
 import { generateId } from '@/lib/utils';
 
@@ -18,6 +18,9 @@ interface AppState {
   // Notifications
   notifications: Notification[];
 
+  // Transactions
+  transactions: Transaction[];
+
   // Actions - Auth
   register: (username: string, email: string, password: string) => boolean;
   login: (email: string, password: string) => boolean;
@@ -30,6 +33,11 @@ interface AppState {
   // Actions - Wallet
   addBalance: (amount: number) => void;
   withdraw: (amount: number) => boolean;
+
+  // Actions - Transactions
+  createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode) => Transaction;
+  confirmDeposit: (transactionId: string) => boolean;
+  getTransactionById: (transactionId: string) => Transaction | undefined;
 
   // Actions - Bookmarks
   toggleBookmark: (marketId: string) => void;
@@ -57,6 +65,7 @@ export const useStore = create<AppState>()(
       isLoggedIn: false,
       markets: initialMarkets,
       userBets: [],
+      transactions: [],
       notifications: [
         {
           id: 'welcome',
@@ -282,6 +291,86 @@ export const useStore = create<AppState>()(
         return true;
       },
 
+      // Transactions
+      createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode) => {
+        const { user, transactions } = get();
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Generate Virtual Account number
+        const bankPrefix: Record<string, string> = {
+          bca: '123',
+          bni: '880',
+          bri: '269',
+          mandiri: '889',
+          cimb: '022',
+          permata: '013',
+          bsi: '451',
+          danamon: '011',
+        };
+
+        const prefix = bankCode ? bankPrefix[bankCode] || '999' : '999';
+        const randomDigits = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+        const vaNumber = prefix + randomDigits;
+
+        const transaction: Transaction = {
+          id: generateId(),
+          userId: user?.id || '',
+          type: 'deposit',
+          amount,
+          fee: 0,
+          totalAmount: amount,
+          paymentMethod,
+          bankCode,
+          ewalletCode,
+          virtualAccountNumber: vaNumber,
+          status: 'pending',
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          reference: `DEP${Date.now()}`,
+        };
+
+        set({ transactions: [transaction, ...transactions] });
+        return transaction;
+      },
+
+      confirmDeposit: (transactionId: string) => {
+        const { transactions, user, notifications } = get();
+        const transaction = transactions.find(t => t.id === transactionId);
+
+        if (!transaction || transaction.status !== 'pending' || !user) return false;
+
+        const updatedTransactions = transactions.map(t =>
+          t.id === transactionId
+            ? { ...t, status: 'completed' as const, paidAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+            : t
+        );
+
+        const notification: Notification = {
+          id: generateId(),
+          type: 'deposit',
+          title: 'Deposit Berhasil',
+          message: `Deposit Rp ${transaction.amount.toLocaleString('id-ID')} telah dikonfirmasi dan ditambahkan ke saldo Anda.`,
+          read: false,
+          timestamp: new Date().toISOString(),
+          link: '/portfolio',
+        };
+
+        set({
+          transactions: updatedTransactions,
+          user: { ...user, balance: user.balance + transaction.amount },
+          notifications: [notification, ...notifications],
+        });
+
+        return true;
+      },
+
+      getTransactionById: (transactionId: string) => {
+        const { transactions } = get();
+        return transactions.find(t => t.id === transactionId);
+      },
+
       // Bookmarks
       toggleBookmark: (marketId: string) => {
         const { user } = get();
@@ -347,6 +436,7 @@ export const useStore = create<AppState>()(
         isLoggedIn: state.isLoggedIn,
         userBets: state.userBets,
         notifications: state.notifications,
+        transactions: state.transactions,
       }),
     }
   )

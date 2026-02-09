@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   LineChart,
@@ -17,7 +17,9 @@ import {
   Menu,
   X,
   Calculator,
+  Shield,
 } from 'lucide-react';
+import AdminGuard from '@/components/AdminGuard';
 
 const menuItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -36,10 +38,23 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('adminAuth');
+    sessionStorage.removeItem('adminUsername');
+    router.push('/admin/login');
+  };
+
+  // If on login page, don't show sidebar
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
   return (
+    <AdminGuard>
     <div className="min-h-screen bg-dark-950">
       {/* Mobile Header */}
       <div className="lg:hidden bg-dark-900 border-b border-dark-700 px-4 py-3 flex items-center justify-between">
@@ -88,6 +103,16 @@ export default function AdminLayout({
               <LogOut className="w-5 h-5" />
               <span>Kembali ke Situs</span>
             </Link>
+            <button
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-dark-800 hover:text-red-300 w-full text-left"
+            >
+              <Shield className="w-5 h-5" />
+              <span>Logout Admin</span>
+            </button>
           </nav>
         </div>
       )}
@@ -151,6 +176,17 @@ export default function AdminLayout({
             </Link>
 
             <button
+              onClick={handleLogout}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-dark-800 hover:text-red-300 transition-colors w-full ${
+                sidebarCollapsed ? 'justify-center' : ''
+              }`}
+              title={sidebarCollapsed ? 'Logout Admin' : undefined}
+            >
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              {!sidebarCollapsed && <span>Logout Admin</span>}
+            </button>
+
+            <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-dark-400 hover:bg-dark-800 hover:text-white transition-colors w-full ${
                 sidebarCollapsed ? 'justify-center' : ''
@@ -174,5 +210,6 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+    </AdminGuard>
   );
 }

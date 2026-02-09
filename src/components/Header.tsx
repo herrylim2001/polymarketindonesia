@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { Search, Menu, X, Wallet, User, TrendingUp, Bell, LogOut, BookOpen, Trophy, Settings } from 'lucide-react';
+import { Search, Menu, X, Wallet, User, TrendingUp, Bell, LogOut, Trophy, Plus, ArrowDownCircle, History } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { formatIDR } from '@/lib/utils';
 
@@ -190,6 +190,14 @@ export default function Header() {
                   </span>
                 </Link>
 
+                <Link
+                  href="/deposit"
+                  className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-2 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">Deposit</span>
+                </Link>
+
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
@@ -218,6 +226,22 @@ export default function Header() {
                       >
                         <Wallet className="w-4 h-4" />
                         Portfolio
+                      </Link>
+                      <Link
+                        href="/deposit"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-green-400 hover:bg-dark-700 hover:text-green-300 transition-colors"
+                      >
+                        <ArrowDownCircle className="w-4 h-4" />
+                        Deposit
+                      </Link>
+                      <Link
+                        href="/transactions"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-dark-300 hover:bg-dark-700 hover:text-white transition-colors"
+                      >
+                        <History className="w-4 h-4" />
+                        Riwayat Transaksi
                       </Link>
                       <Link
                         href="/leaderboard"
@@ -300,11 +324,17 @@ export default function Header() {
                     <Wallet className="w-4 h-4" />
                     <span className="font-medium">{formatIDR(user.balance)}</span>
                   </div>
+                  <Link href="/deposit" onClick={() => setIsMenuOpen(false)} className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <Plus className="w-4 h-4" /> Deposit
+                  </Link>
                   <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block text-dark-300 hover:text-white transition-colors">
                     Profil
                   </Link>
                   <Link href="/portfolio" onClick={() => setIsMenuOpen(false)} className="block text-dark-300 hover:text-white transition-colors">
                     Portfolio
+                  </Link>
+                  <Link href="/transactions" onClick={() => setIsMenuOpen(false)} className="block text-dark-300 hover:text-white transition-colors">
+                    Riwayat Transaksi
                   </Link>
                   <Link href="/leaderboard" onClick={() => setIsMenuOpen(false)} className="block text-dark-300 hover:text-white transition-colors">
                     Leaderboard
