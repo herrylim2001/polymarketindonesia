@@ -8,7 +8,7 @@ import {
   XCircle, AlertCircle, Plus, Filter, ChevronDown
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { Transaction, BANKS, EWALLETS } from '@/types';
+import { Transaction, BANKS, EWALLETS, CRYPTOCURRENCIES } from '@/types';
 import { formatIDR } from '@/lib/utils';
 
 export default function TransactionsPage() {
@@ -89,6 +89,10 @@ export default function TransactionsPage() {
     if (tx.ewalletCode) {
       const ewallet = EWALLETS.find(e => e.code === tx.ewalletCode);
       return ewallet?.name || 'E-Wallet';
+    }
+    if (tx.cryptoCode) {
+      const crypto = CRYPTOCURRENCIES.find(c => c.code === tx.cryptoCode);
+      return crypto ? `${crypto.symbol} (${crypto.networkName})` : 'Crypto';
     }
     if (tx.paymentMethod === 'qris') return 'QRIS';
     return 'Transfer';

@@ -65,7 +65,8 @@ export type PaymentMethod =
   | 'bank_transfer'
   | 'virtual_account'
   | 'ewallet'
-  | 'qris';
+  | 'qris'
+  | 'crypto';
 
 export type BankCode =
   | 'bca' | 'bni' | 'bri' | 'mandiri'
@@ -73,6 +74,14 @@ export type BankCode =
 
 export type EwalletCode =
   | 'dana' | 'ovo' | 'gopay' | 'shopeepay' | 'linkaja';
+
+export type CryptoCode =
+  | 'btc' | 'btc_lightning' | 'eth' | 'usdt_trc20' | 'usdt_erc20'
+  | 'usdt_ton' | 'usdc' | 'matic' | 'ton' | 'xrp' | 'arb' | 'base';
+
+export type CryptoNetwork =
+  | 'bitcoin' | 'lightning' | 'ethereum' | 'tron' | 'ton'
+  | 'polygon' | 'arbitrum' | 'base' | 'ripple';
 
 export interface Transaction {
   id: string;
@@ -84,6 +93,11 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   bankCode?: BankCode;
   ewalletCode?: EwalletCode;
+  cryptoCode?: CryptoCode;
+  cryptoNetwork?: CryptoNetwork;
+  cryptoAddress?: string;
+  cryptoAmount?: number;
+  cryptoTxHash?: string;
   virtualAccountNumber?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'expired';
   createdAt: string;
@@ -91,6 +105,7 @@ export interface Transaction {
   expiresAt?: string;
   paidAt?: string;
   reference?: string;
+  uniwireInvoiceId?: string;
 }
 
 export interface BankInfo {
@@ -130,6 +145,68 @@ export const EWALLETS: EwalletInfo[] = [
   { code: 'shopeepay', name: 'ShopeePay', logo: '/ewallets/shopeepay.png', color: 'bg-orange-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
   { code: 'linkaja', name: 'LinkAja', logo: '/ewallets/linkaja.png', color: 'bg-red-500', adminFee: 0, minAmount: 10000, maxAmount: 10000000 },
 ];
+
+// Crypto payment options powered by Uniwire
+export interface CryptoInfo {
+  code: CryptoCode;
+  name: string;
+  symbol: string;
+  network: CryptoNetwork;
+  networkName: string;
+  color: string;
+  icon: string;
+  minAmount: number; // in USD
+  confirmations: number;
+  isLightning?: boolean;
+}
+
+export const CRYPTOCURRENCIES: CryptoInfo[] = [
+  // Bitcoin
+  { code: 'btc', name: 'Bitcoin', symbol: 'BTC', network: 'bitcoin', networkName: 'Bitcoin', color: 'bg-orange-500', icon: '₿', minAmount: 10, confirmations: 1 },
+  { code: 'btc_lightning', name: 'Bitcoin Lightning', symbol: 'BTC', network: 'lightning', networkName: 'Lightning Network', color: 'bg-yellow-500', icon: '⚡', minAmount: 1, confirmations: 0, isLightning: true },
+
+  // Ethereum
+  { code: 'eth', name: 'Ethereum', symbol: 'ETH', network: 'ethereum', networkName: 'Ethereum', color: 'bg-indigo-500', icon: 'Ξ', minAmount: 10, confirmations: 12 },
+
+  // Stablecoins - USDT
+  { code: 'usdt_trc20', name: 'USDT', symbol: 'USDT', network: 'tron', networkName: 'Tron (TRC20)', color: 'bg-green-500', icon: '₮', minAmount: 10, confirmations: 20 },
+  { code: 'usdt_erc20', name: 'USDT', symbol: 'USDT', network: 'ethereum', networkName: 'Ethereum (ERC20)', color: 'bg-green-600', icon: '₮', minAmount: 10, confirmations: 12 },
+  { code: 'usdt_ton', name: 'USDT', symbol: 'USDT', network: 'ton', networkName: 'TON', color: 'bg-blue-500', icon: '₮', minAmount: 5, confirmations: 1 },
+
+  // USDC
+  { code: 'usdc', name: 'USD Coin', symbol: 'USDC', network: 'ethereum', networkName: 'Ethereum', color: 'bg-blue-600', icon: '$', minAmount: 10, confirmations: 12 },
+
+  // Layer 2 & Other Networks
+  { code: 'matic', name: 'Polygon', symbol: 'MATIC', network: 'polygon', networkName: 'Polygon', color: 'bg-purple-500', icon: '⬡', minAmount: 5, confirmations: 128 },
+  { code: 'ton', name: 'Toncoin', symbol: 'TON', network: 'ton', networkName: 'TON', color: 'bg-sky-500', icon: '💎', minAmount: 5, confirmations: 1 },
+  { code: 'xrp', name: 'Ripple', symbol: 'XRP', network: 'ripple', networkName: 'XRP Ledger', color: 'bg-gray-600', icon: '✕', minAmount: 10, confirmations: 1 },
+  { code: 'arb', name: 'Arbitrum', symbol: 'ARB', network: 'arbitrum', networkName: 'Arbitrum One', color: 'bg-blue-400', icon: '◆', minAmount: 5, confirmations: 1 },
+  { code: 'base', name: 'Base', symbol: 'ETH', network: 'base', networkName: 'Base', color: 'bg-blue-700', icon: '🔵', minAmount: 5, confirmations: 1 },
+];
+
+// Uniwire API Configuration
+export interface UniwireConfig {
+  apiKey: string;
+  apiSecret: string;
+  profileId: string;
+  callbackToken: string;
+  callbackUrl: string;
+  isTestMode: boolean;
+}
+
+export interface UniwireInvoice {
+  id: string;
+  address: string;
+  amount: number;
+  amountCrypto: number;
+  currency: string;
+  cryptoKind: string;
+  status: 'pending' | 'underpaid' | 'paid' | 'overpaid' | 'expired';
+  expiresAt: string;
+  createdAt: string;
+  qrCodeUrl?: string;
+  lightningInvoice?: string;
+}
 
 export type Category =
   | 'politik'

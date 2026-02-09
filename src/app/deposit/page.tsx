@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Wallet, Building2, Smartphone, QrCode, ChevronRight,
-  Copy, Check, Clock, AlertCircle, ArrowLeft, Shield
+  Copy, Check, Clock, AlertCircle, ArrowLeft, Shield, Zap, ExternalLink
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { BANKS, EWALLETS, PaymentMethod, BankCode, EwalletCode, Transaction } from '@/types';
+import { BANKS, EWALLETS, CRYPTOCURRENCIES, PaymentMethod, BankCode, EwalletCode, CryptoCode, Transaction, UniwireInvoice } from '@/types';
 import { formatIDR } from '@/lib/utils';
+import { createCryptoInvoice, formatCryptoAmount, getCryptoSymbol, getEstimatedConfirmationTime, getNetworkFeeEstimate, convertIDRToCrypto } from '@/lib/uniwire';
 
 const PRESET_AMOUNTS = [50000, 100000, 250000, 500000, 1000000, 2500000];
 
@@ -24,9 +25,12 @@ export default function DepositPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [selectedBank, setSelectedBank] = useState<BankCode | null>(null);
   const [selectedEwallet, setSelectedEwallet] = useState<EwalletCode | null>(null);
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCode | null>(null);
+  const [cryptoInvoice, setCryptoInvoice] = useState<UniwireInvoice | null>(null);
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -94,9 +98,44 @@ export default function DepositPage() {
     }
   };
 
-  const handleCreateTransaction = () => {
+  const handleCopyAddress = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const handleCreateTransaction = async () => {
     if (amount < 10000) return;
 
+    // Handle crypto payment
+    if (paymentMethod === 'crypto' && selectedCrypto) {
+      setIsCreatingInvoice(true);
+      try {
+        const invoice = await createCryptoInvoice(amount, selectedCrypto);
+        setCryptoInvoice(invoice);
+
+        const tx = createDeposit(
+          amount,
+          'crypto',
+          undefined,
+          undefined,
+          selectedCrypto
+        );
+        setTransaction(tx);
+        setStep('payment');
+      } catch (error) {
+        console.error('Failed to create crypto invoice:', error);
+      } finally {
+        setIsCreatingInvoice(false);
+      }
+      return;
+    }
+
+    // Handle other payment methods
     const tx = createDeposit(
       amount,
       paymentMethod!,
@@ -115,6 +154,7 @@ export default function DepositPage() {
 
   const getSelectedBankInfo = () => BANKS.find(b => b.code === selectedBank);
   const getSelectedEwalletInfo = () => EWALLETS.find(e => e.code === selectedEwallet);
+  const getSelectedCryptoInfo = () => CRYPTOCURRENCIES.find(c => c.code === selectedCrypto);
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
@@ -282,6 +322,7 @@ export default function DepositPage() {
             setPaymentMethod('qris');
             setSelectedBank(null);
             setSelectedEwallet(null);
+            setSelectedCrypto(null);
           }}
           className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
             paymentMethod === 'qris'
@@ -299,13 +340,84 @@ export default function DepositPage() {
         </button>
       </div>
 
+      {/* Crypto - Powered by Uniwire */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Zap className="w-5 h-5 text-orange-400" />
+            Cryptocurrency
+          </h3>
+          <a
+            href="https://uniwire.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-dark-400 hover:text-primary-400 flex items-center gap-1"
+          >
+            Powered by Uniwire <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {CRYPTOCURRENCIES.slice(0, 8).map(crypto => (
+            <button
+              key={crypto.code}
+              onClick={() => {
+                setPaymentMethod('crypto');
+                setSelectedCrypto(crypto.code);
+                setSelectedBank(null);
+                setSelectedEwallet(null);
+              }}
+              className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${
+                selectedCrypto === crypto.code
+                  ? 'bg-primary-600/20 border-primary-500'
+                  : 'bg-dark-800 border-dark-700 hover:border-dark-500'
+              }`}
+            >
+              <div className={`w-10 h-10 ${crypto.color} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
+                {crypto.icon}
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-white font-medium text-sm truncate">{crypto.symbol}</p>
+                <p className="text-dark-400 text-xs truncate">{crypto.networkName}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {selectedCrypto && (
+          <div className="mt-3 bg-dark-900 rounded-xl p-3 border border-dark-700">
+            <div className="flex justify-between text-sm">
+              <span className="text-dark-400">Estimasi jumlah:</span>
+              <span className="text-white font-mono">
+                {formatCryptoAmount(convertIDRToCrypto(amount, selectedCrypto), selectedCrypto)} {getCryptoSymbol(selectedCrypto)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-dark-400">Waktu konfirmasi:</span>
+              <span className="text-white">{getEstimatedConfirmationTime(selectedCrypto)}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-dark-400">Network fee:</span>
+              <span className="text-white">{getNetworkFeeEstimate(selectedCrypto)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       <button
         onClick={handleCreateTransaction}
-        disabled={!paymentMethod}
+        disabled={!paymentMethod || isCreatingInvoice}
         className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-dark-700 disabled:text-dark-500 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
       >
-        Lanjutkan ke Pembayaran
-        <ChevronRight className="w-5 h-5" />
+        {isCreatingInvoice ? (
+          <>
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Membuat Invoice...
+          </>
+        ) : (
+          <>
+            Lanjutkan ke Pembayaran
+            <ChevronRight className="w-5 h-5" />
+          </>
+        )}
       </button>
     </div>
   );
@@ -313,6 +425,7 @@ export default function DepositPage() {
   const renderPaymentStep = () => {
     const bankInfo = getSelectedBankInfo();
     const ewalletInfo = getSelectedEwalletInfo();
+    const cryptoInfo = getSelectedCryptoInfo();
 
     return (
       <div className="space-y-6">
@@ -329,6 +442,11 @@ export default function DepositPage() {
           <div className="p-4 border-b border-dark-700">
             <p className="text-dark-400 text-sm">Total Pembayaran</p>
             <p className="text-3xl font-bold text-white">{formatIDR(amount)}</p>
+            {paymentMethod === 'crypto' && cryptoInvoice && (
+              <p className="text-lg text-primary-400 font-mono mt-1">
+                {formatCryptoAmount(cryptoInvoice.amountCrypto, selectedCrypto!)} {cryptoInvoice.currency}
+              </p>
+            )}
           </div>
 
           {/* Virtual Account Number */}
@@ -392,6 +510,90 @@ export default function DepositPage() {
               </p>
             </div>
           )}
+
+          {/* Crypto Payment */}
+          {paymentMethod === 'crypto' && cryptoInfo && cryptoInvoice && (
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-12 h-12 ${cryptoInfo.color} rounded-xl flex items-center justify-center text-white font-bold text-xl`}>
+                  {cryptoInfo.icon}
+                </div>
+                <div>
+                  <p className="text-white font-semibold">{cryptoInfo.name}</p>
+                  <p className="text-dark-400 text-sm">{cryptoInfo.networkName}</p>
+                </div>
+              </div>
+
+              {/* Crypto Amount */}
+              <div className="bg-dark-900 rounded-xl p-4 mb-4">
+                <p className="text-dark-400 text-sm mb-1">Jumlah yang harus dikirim</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-mono font-bold text-white">
+                    {formatCryptoAmount(cryptoInvoice.amountCrypto, selectedCrypto!)} {cryptoInvoice.currency}
+                  </p>
+                  <button
+                    onClick={() => handleCopyAddress(cryptoInvoice.amountCrypto.toString())}
+                    className="p-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition-colors"
+                  >
+                    {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5 text-dark-300" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* QR Code */}
+              {cryptoInvoice.qrCodeUrl && (
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white p-3 rounded-xl">
+                    <img
+                      src={cryptoInvoice.qrCodeUrl}
+                      alt="QR Code"
+                      className="w-40 h-40"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Wallet Address */}
+              <div className="bg-dark-900 rounded-xl p-4">
+                <p className="text-dark-400 text-sm mb-1">
+                  {cryptoInfo.isLightning ? 'Lightning Invoice' : 'Alamat Wallet'}
+                </p>
+                <div className="flex items-start gap-2">
+                  <p className="text-sm font-mono text-white break-all flex-1">
+                    {cryptoInfo.isLightning && cryptoInvoice.lightningInvoice
+                      ? cryptoInvoice.lightningInvoice
+                      : cryptoInvoice.address}
+                  </p>
+                  <button
+                    onClick={() => handleCopyAddress(
+                      cryptoInfo.isLightning && cryptoInvoice.lightningInvoice
+                        ? cryptoInvoice.lightningInvoice
+                        : cryptoInvoice.address
+                    )}
+                    className="p-2 bg-dark-700 hover:bg-dark-600 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-dark-300" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-dark-400">Network:</span>
+                  <span className="text-white">{cryptoInfo.networkName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400">Konfirmasi:</span>
+                  <span className="text-white">{cryptoInfo.confirmations} konfirmasi</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400">Est. waktu:</span>
+                  <span className="text-white">{getEstimatedConfirmationTime(selectedCrypto!)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Instructions */}
@@ -424,6 +626,15 @@ export default function DepositPage() {
                 <li>Pilih menu Scan QR / QRIS</li>
                 <li>Arahkan kamera ke QR code di atas</li>
                 <li>Periksa detail dan konfirmasi pembayaran</li>
+              </>
+            )}
+            {paymentMethod === 'crypto' && cryptoInfo && (
+              <>
+                <li>Buka wallet crypto Anda ({cryptoInfo.name})</li>
+                <li>Scan QR code atau salin alamat di atas</li>
+                <li>Kirim <span className="text-white font-mono">{cryptoInvoice && formatCryptoAmount(cryptoInvoice.amountCrypto, selectedCrypto!)} {cryptoInfo.symbol}</span> ke alamat tersebut</li>
+                <li>Pastikan menggunakan network <span className="text-white">{cryptoInfo.networkName}</span></li>
+                <li>Tunggu {cryptoInfo.confirmations > 0 ? `${cryptoInfo.confirmations} konfirmasi` : 'konfirmasi instan'}</li>
               </>
             )}
           </ol>
@@ -481,6 +692,8 @@ export default function DepositPage() {
             setPaymentMethod(null);
             setSelectedBank(null);
             setSelectedEwallet(null);
+            setSelectedCrypto(null);
+            setCryptoInvoice(null);
             setTransaction(null);
           }}
           className="flex-1 bg-dark-700 hover:bg-dark-600 text-white font-semibold py-3 rounded-xl transition-colors"

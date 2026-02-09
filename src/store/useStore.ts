@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, Bet, Market, Notification, Transaction, PaymentMethod, BankCode, EwalletCode } from '@/types';
+import { User, Bet, Market, Notification, Transaction, PaymentMethod, BankCode, EwalletCode, CryptoCode } from '@/types';
 import { markets as initialMarkets } from '@/data/markets';
 import { generateId } from '@/lib/utils';
 
@@ -35,7 +35,7 @@ interface AppState {
   withdraw: (amount: number) => boolean;
 
   // Actions - Transactions
-  createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode) => Transaction;
+  createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode, cryptoCode?: CryptoCode) => Transaction;
   confirmDeposit: (transactionId: string) => boolean;
   getTransactionById: (transactionId: string) => Transaction | undefined;
 
@@ -292,12 +292,14 @@ export const useStore = create<AppState>()(
       },
 
       // Transactions
-      createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode) => {
+      createDeposit: (amount: number, paymentMethod: PaymentMethod, bankCode?: BankCode, ewalletCode?: EwalletCode, cryptoCode?: CryptoCode) => {
         const { user, transactions } = get();
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+        // Crypto has shorter expiry (30 min), others 24 hours
+        const expiryMs = paymentMethod === 'crypto' ? 30 * 60 * 1000 : 24 * 60 * 60 * 1000;
+        const expiresAt = new Date(now.getTime() + expiryMs);
 
-        // Generate Virtual Account number
+        // Generate Virtual Account number for bank transfers
         const bankPrefix: Record<string, string> = {
           bca: '123',
           bni: '880',
@@ -311,7 +313,7 @@ export const useStore = create<AppState>()(
 
         const prefix = bankCode ? bankPrefix[bankCode] || '999' : '999';
         const randomDigits = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
-        const vaNumber = prefix + randomDigits;
+        const vaNumber = bankCode ? prefix + randomDigits : undefined;
 
         const transaction: Transaction = {
           id: generateId(),
@@ -323,12 +325,13 @@ export const useStore = create<AppState>()(
           paymentMethod,
           bankCode,
           ewalletCode,
+          cryptoCode,
           virtualAccountNumber: vaNumber,
           status: 'pending',
           createdAt: now.toISOString(),
           updatedAt: now.toISOString(),
           expiresAt: expiresAt.toISOString(),
-          reference: `DEP${Date.now()}`,
+          reference: paymentMethod === 'crypto' ? `CRYPTO${Date.now()}` : `DEP${Date.now()}`,
         };
 
         set({ transactions: [transaction, ...transactions] });
