@@ -19,18 +19,68 @@ import {
   probabilityToIndonesianOdds,
   calculatePayoutIndonesian,
 } from '@/lib/odds';
-import { formatIDR } from '@/lib/utils';
+import { formatIDR, formatNumber } from '@/lib/utils';
+
+// Helper to parse formatted number back to number
+const parseFormattedNumber = (value: string): number => {
+  // Remove dots (thousand separator) and replace comma with dot for decimal
+  const cleaned = value.replace(/\./g, '').replace(',', '.');
+  return parseInt(cleaned) || 0;
+};
 
 export default function OddsCalculatorPage() {
   // Basic Calculator
   const [probability, setProbability] = useState(50);
   const [betAmount, setBetAmount] = useState(100000);
+  const [betAmountInput, setBetAmountInput] = useState('100.000');
 
   // AMM Simulator
   const [ammLiquidity, setAmmLiquidity] = useState(1000000);
+  const [ammLiquidityInput, setAmmLiquidityInput] = useState('1.000.000');
   const [ammInitialProb, setAmmInitialProb] = useState(50);
   const [ammBetAmount, setAmmBetAmount] = useState(100000);
+  const [ammBetAmountInput, setAmmBetAmountInput] = useState('100.000');
   const [ammBetSide, setAmmBetSide] = useState<'yes' | 'no'>('yes');
+
+  // Handle bet amount input change
+  const handleBetAmountChange = (value: string) => {
+    setBetAmountInput(value);
+    const numValue = parseFormattedNumber(value);
+    setBetAmount(Math.max(0, numValue));
+  };
+
+  // Handle bet amount blur - format the number
+  const handleBetAmountBlur = () => {
+    setBetAmountInput(formatNumber(betAmount));
+  };
+
+  // Handle AMM liquidity input change
+  const handleAmmLiquidityChange = (value: string) => {
+    setAmmLiquidityInput(value);
+    const numValue = parseFormattedNumber(value);
+    setAmmLiquidity(Math.max(100000, numValue));
+  };
+
+  const handleAmmLiquidityBlur = () => {
+    setAmmLiquidityInput(formatNumber(ammLiquidity));
+  };
+
+  // Handle AMM bet amount input change
+  const handleAmmBetAmountChange = (value: string) => {
+    setAmmBetAmountInput(value);
+    const numValue = parseFormattedNumber(value);
+    setAmmBetAmount(Math.max(0, numValue));
+  };
+
+  const handleAmmBetAmountBlur = () => {
+    setAmmBetAmountInput(formatNumber(ammBetAmount));
+  };
+
+  // Quick amount selection
+  const handleQuickAmount = (amount: number) => {
+    setBetAmount(amount);
+    setBetAmountInput(formatNumber(amount));
+  };
 
   // Calculate basic odds
   const basicOdds = useMemo(() => {
@@ -116,20 +166,25 @@ export default function OddsCalculatorPage() {
               <label className="block text-dark-300 text-sm font-medium mb-2">
                 Jumlah Taruhan (Rp)
               </label>
-              <input
-                type="number"
-                value={betAmount}
-                onChange={(e) => setBetAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500"
-              />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-400">Rp</span>
+                <input
+                  type="text"
+                  value={betAmountInput}
+                  onChange={(e) => handleBetAmountChange(e.target.value)}
+                  onBlur={handleBetAmountBlur}
+                  className="w-full bg-dark-700 border border-dark-600 rounded-lg pl-12 pr-4 py-3 text-white text-right text-lg font-semibold focus:outline-none focus:border-primary-500"
+                  placeholder="0"
+                />
+              </div>
               <div className="flex gap-2 mt-2">
                 {[100000, 500000, 1000000, 5000000].map((amount) => (
                   <button
                     key={amount}
-                    onClick={() => setBetAmount(amount)}
+                    onClick={() => handleQuickAmount(amount)}
                     className="px-3 py-1 bg-dark-700 hover:bg-dark-600 text-dark-300 text-xs rounded-lg transition-colors"
                   >
-                    {formatIDR(amount)}
+                    {formatNumber(amount)}
                   </button>
                 ))}
               </div>
@@ -152,8 +207,8 @@ export default function OddsCalculatorPage() {
                 </p>
                 <p className="text-dark-400 text-xs mt-2">
                   {oddsFormats.indonesian.startsWith('+')
-                    ? `Taruhan Rp 100.000 → profit Rp ${Math.round(parseFloat(oddsFormats.indonesian) * 100000).toLocaleString('id-ID')}`
-                    : `Taruhan Rp ${Math.round(Math.abs(parseFloat(oddsFormats.indonesian)) * 100000).toLocaleString('id-ID')} → profit Rp 100.000`
+                    ? `Taruhan Rp 100.000 → profit Rp ${formatNumber(Math.round(parseFloat(oddsFormats.indonesian) * 100000))}`
+                    : `Taruhan Rp ${formatNumber(Math.round(Math.abs(parseFloat(oddsFormats.indonesian)) * 100000))} → profit Rp 100.000`
                   }
                 </p>
               </div>
@@ -193,30 +248,30 @@ export default function OddsCalculatorPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-dark-400">Harga per Share</span>
                   <span className="text-white font-medium">
-                    Rp {basicOdds.pricePerShare.toFixed(2)}
+                    Rp {formatNumber(basicOdds.pricePerShare, 2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-dark-400">Shares Didapat</span>
                   <span className="text-white font-medium">
-                    {basicOdds.sharesReceived.toLocaleString('id-ID')}
+                    {formatNumber(Math.round(basicOdds.sharesReceived))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-dark-400">Taruhan</span>
-                  <span className="text-white font-medium">{formatIDR(betAmount)}</span>
+                  <span className="text-white font-medium">Rp {formatNumber(betAmount)}</span>
                 </div>
                 <hr className="border-dark-600" />
                 <div className="flex justify-between items-center">
                   <span className="text-dark-300 font-medium">Potensi Payout</span>
                   <span className="text-white text-lg font-bold">
-                    {formatIDR(basicOdds.potentialPayout)}
+                    Rp {formatNumber(Math.round(basicOdds.potentialPayout))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-dark-300 font-medium">Potensi Profit</span>
                   <span className="text-green-500 text-lg font-bold">
-                    +{formatIDR(basicOdds.potentialProfit)}
+                    +Rp {formatNumber(Math.round(basicOdds.potentialProfit))}
                   </span>
                 </div>
               </div>
@@ -247,14 +302,29 @@ export default function OddsCalculatorPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-dark-300 text-sm font-medium mb-2">
-                  Likuiditas Awal
+                  Likuiditas Awal (Rp)
                 </label>
                 <input
-                  type="number"
-                  value={ammLiquidity}
-                  onChange={(e) => setAmmLiquidity(Math.max(100000, parseInt(e.target.value) || 1000000))}
-                  className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                  type="text"
+                  value={ammLiquidityInput}
+                  onChange={(e) => handleAmmLiquidityChange(e.target.value)}
+                  onBlur={handleAmmLiquidityBlur}
+                  className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 text-white text-right font-semibold focus:outline-none focus:border-primary-500"
                 />
+                <div className="flex gap-1 mt-1">
+                  {[1000000, 10000000, 100000000].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => {
+                        setAmmLiquidity(amount);
+                        setAmmLiquidityInput(formatNumber(amount));
+                      }}
+                      className="flex-1 px-2 py-1 bg-dark-600 hover:bg-dark-500 text-dark-300 text-[10px] rounded transition-colors"
+                    >
+                      {formatNumber(amount)}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="block text-dark-300 text-sm font-medium mb-2">
@@ -268,7 +338,7 @@ export default function OddsCalculatorPage() {
                   onChange={(e) =>
                     setAmmInitialProb(Math.max(1, Math.min(99, parseInt(e.target.value) || 50)))
                   }
-                  className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
+                  className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 text-white text-center focus:outline-none focus:border-primary-500"
                 />
               </div>
             </div>
@@ -298,14 +368,33 @@ export default function OddsCalculatorPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-dark-300 text-sm font-medium mb-2">
-                  Jumlah Taruhan
+                  Jumlah Taruhan (Rp)
                 </label>
-                <input
-                  type="number"
-                  value={ammBetAmount}
-                  onChange={(e) => setAmmBetAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-400">Rp</span>
+                  <input
+                    type="text"
+                    value={ammBetAmountInput}
+                    onChange={(e) => handleAmmBetAmountChange(e.target.value)}
+                    onBlur={handleAmmBetAmountBlur}
+                    className="w-full bg-dark-700 border border-dark-600 rounded-lg pl-12 pr-4 py-3 text-white text-right text-lg font-semibold focus:outline-none focus:border-primary-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex gap-1 mt-2">
+                  {[100000, 500000, 1000000, 5000000].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => {
+                        setAmmBetAmount(amount);
+                        setAmmBetAmountInput(formatNumber(amount));
+                      }}
+                      className="flex-1 px-2 py-1 bg-dark-600 hover:bg-dark-500 text-dark-300 text-[10px] rounded transition-colors"
+                    >
+                      {formatNumber(amount)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -382,13 +471,13 @@ export default function OddsCalculatorPage() {
                   <div className="p-3 bg-dark-700 rounded-lg">
                     <p className="text-dark-400 text-xs mb-1">Shares Didapat</p>
                     <p className="text-white font-bold">
-                      {ammResult.simulation.sharesReceived.toLocaleString('id-ID')}
+                      {formatNumber(Math.round(ammResult.simulation.sharesReceived))}
                     </p>
                   </div>
                   <div className="p-3 bg-dark-700 rounded-lg">
                     <p className="text-dark-400 text-xs mb-1">Harga Rata-rata</p>
                     <p className="text-white font-bold">
-                      Rp {ammResult.simulation.avgPrice.toFixed(4)}
+                      Rp {formatNumber(ammResult.simulation.avgPrice, 4)}
                     </p>
                   </div>
                 </div>
@@ -398,13 +487,13 @@ export default function OddsCalculatorPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-dark-300">Potensi Payout (jika menang)</span>
                     <span className="text-green-500 text-xl font-bold">
-                      {formatIDR(ammResult.simulation.sharesReceived)}
+                      Rp {formatNumber(Math.round(ammResult.simulation.sharesReceived))}
                     </span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-dark-400 text-sm">Potensi Profit</span>
                     <span className="text-green-400 font-medium">
-                      +{formatIDR(ammResult.simulation.sharesReceived - ammBetAmount)}
+                      +Rp {formatNumber(Math.round(ammResult.simulation.sharesReceived - ammBetAmount))}
                     </span>
                   </div>
                 </div>
@@ -432,7 +521,7 @@ export default function OddsCalculatorPage() {
           Tabel Referensi Odds
         </h2>
         <p className="text-dark-400 text-sm mb-4">
-          Perbandingan format odds untuk berbagai probabilitas (taruhan Rp 100.000)
+          Perbandingan format odds untuk berbagai probabilitas (taruhan Rp {formatNumber(100000)})
         </p>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -470,10 +559,10 @@ export default function OddsCalculatorPage() {
                     <td className="px-4 py-3 text-white">{odds.decimal}</td>
                     <td className="px-4 py-3 text-white">{odds.american}</td>
                     <td className="px-4 py-3 text-right text-green-500 font-medium">
-                      +{formatIDR(indoPayout.profit)}
+                      +Rp {formatNumber(Math.round(indoPayout.profit))}
                     </td>
                     <td className="px-4 py-3 text-right text-white">
-                      {formatIDR(Math.round(indoPayout.totalReturn))}
+                      Rp {formatNumber(Math.round(indoPayout.totalReturn))}
                     </td>
                   </tr>
                 );
@@ -495,10 +584,10 @@ export default function OddsCalculatorPage() {
               Menunjukkan <strong className="text-white">profit</strong> yang didapat per unit taruhan. Biasanya untuk outcome yang dianggap kurang mungkin (underdog).
             </p>
             <div className="bg-dark-800 rounded-lg p-4 space-y-2">
-              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds +1.50</p>
-              <p className="text-white text-sm">Taruhan: <strong>Rp 100.000</strong></p>
-              <p className="text-white text-sm">Profit: Rp 100.000 x 1.50 = <strong className="text-green-400">Rp 150.000</strong></p>
-              <p className="text-white text-sm">Total kembali: <strong>Rp 250.000</strong></p>
+              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds +1,50</p>
+              <p className="text-white text-sm">Taruhan: <strong>Rp {formatNumber(100000)}</strong></p>
+              <p className="text-white text-sm">Profit: Rp {formatNumber(100000)} x 1,50 = <strong className="text-green-400">Rp {formatNumber(150000)}</strong></p>
+              <p className="text-white text-sm">Total kembali: <strong>Rp {formatNumber(250000)}</strong></p>
             </div>
           </div>
           <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-5">
@@ -507,10 +596,10 @@ export default function OddsCalculatorPage() {
               Menunjukkan <strong className="text-white">berapa yang harus ditaruhkan</strong> untuk profit 1 unit. Biasanya untuk outcome favorit.
             </p>
             <div className="bg-dark-800 rounded-lg p-4 space-y-2">
-              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds -1.50</p>
-              <p className="text-white text-sm">Taruhan: <strong>Rp 150.000</strong></p>
-              <p className="text-white text-sm">Profit: Rp 150.000 / 1.50 = <strong className="text-green-400">Rp 100.000</strong></p>
-              <p className="text-white text-sm">Total kembali: <strong>Rp 250.000</strong></p>
+              <p className="text-dark-400 text-xs uppercase tracking-wider">Contoh: Odds -1,50</p>
+              <p className="text-white text-sm">Taruhan: <strong>Rp {formatNumber(150000)}</strong></p>
+              <p className="text-white text-sm">Profit: Rp {formatNumber(150000)} / 1,50 = <strong className="text-green-400">Rp {formatNumber(100000)}</strong></p>
+              <p className="text-white text-sm">Total kembali: <strong>Rp {formatNumber(250000)}</strong></p>
             </div>
           </div>
         </div>
