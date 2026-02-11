@@ -9,6 +9,13 @@
 # Next.js
 /.next/
 /out/
+**/apps/**/.next/
+
+# Turbo
+.turbo/
+
+# Package dist folders
+**/packages/**/dist/
 
 # Production
 /build
