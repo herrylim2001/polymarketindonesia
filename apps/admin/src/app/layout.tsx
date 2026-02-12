@@ -23,14 +23,14 @@ import {
 import AdminGuard from '@/components/AdminGuard';
 
 const menuItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/markets', label: 'Markets', icon: List },
-  { href: '/markets/new', label: 'Tambah Market', icon: PlusCircle },
-  { href: '/odds-calculator', label: 'Kalkulator Odds', icon: Calculator },
-  { href: '/transactions', label: 'Transaksi', icon: Receipt },
-  { href: '/users', label: 'Users', icon: Users },
-  { href: '/reports', label: 'Laporan', icon: LineChart },
-  { href: '/settings', label: 'Pengaturan', icon: Settings },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/markets', label: 'Markets', icon: List },
+  { href: '/admin/markets/new', label: 'Tambah Market', icon: PlusCircle },
+  { href: '/admin/odds-calculator', label: 'Kalkulator Odds', icon: Calculator },
+  { href: '/admin/transactions', label: 'Transaksi', icon: Receipt },
+  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/reports', label: 'Laporan', icon: LineChart },
+  { href: '/admin/settings', label: 'Pengaturan', icon: Settings },
 ];
 
 export default function RootLayout({
@@ -46,11 +46,11 @@ export default function RootLayout({
   const handleLogout = () => {
     sessionStorage.removeItem('adminAuth');
     sessionStorage.removeItem('adminUsername');
-    router.push('/login');
+    router.push('/admin/login');
   };
 
   // If on login page, don't show sidebar
-  if (pathname === '/login') {
+  if (pathname === '/admin/login') {
     return (
       <html lang="id">
         <body className="font-sans bg-dark-950 text-white min-h-screen">
