@@ -1,0 +1,460 @@
+// Prisma Schema for PolyID - Indonesian Prediction Market
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String?
+
+  // Profile
+  avatar        String?
+  phone         String?
+
+  // Wallet
+  balance       Decimal   @default(0) @db.Decimal(18, 2)
+
+  // Stats
+  totalBets     Int       @default(0)
+  totalWins     Int       @default(0)
+  totalProfit   Decimal   @default(0) @db.Decimal(18, 2)
+
+  // KYC
+  kycStatus     KycStatus @default(NONE)
+  kycLevel      Int       @default(0)
+  kycDocuments  KycDocument[]
+
+  // Referral
+  referralCode  String?   @unique
+  referredBy    User?     @relation("Referral", fields: [referredById], references: [id])
+  referredById  String?
+  referrals     User[]    @relation("Referral")
+  referralEarnings Decimal @default(0) @db.Decimal(18, 2)
+
+  // Status
+  isActive      Boolean   @default(true)
+  isAdmin       Boolean   @default(false)
+  isBanned      Boolean   @default(false)
+  banReason     String?
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  bets          Bet[]
+  transactions  Transaction[]
+  notifications Notification[]
+  bookmarks     Bookmark[]
+  comments      Comment[]
+  sessions      Session[]
+
+  @@index([email])
+  @@index([username])
+  @@index([referralCode])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model KycDocument {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        String   // ktp, sim, passport
+  documentUrl String
+  status      KycStatus @default(PENDING)
+  rejectedReason String?
+
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============================================
+// MARKETS & OUTCOMES
+// ============================================
+
+model Market {
+  id            String        @id @default(cuid())
+
+  // Basic Info
+  title         String
+  description   String        @db.Text
+  category      Category
+  imageUrl      String?
+  source        String?
+
+  // Timing
+  startDate     DateTime      @default(now())
+  endDate       DateTime
+  resolvedAt    DateTime?
+
+  // Stats
+  totalVolume   Decimal       @default(0) @db.Decimal(18, 2)
+  totalBets     Int           @default(0)
+  liquidity     Decimal       @default(1000000) @db.Decimal(18, 2)
+
+  // Status
+  status        MarketStatus  @default(ACTIVE)
+  featured      Boolean       @default(false)
+  trending      Boolean       @default(false)
+
+  // Resolution
+  resolvedOutcomeId String?
+  resolvedOutcome   Outcome?  @relation("ResolvedOutcome", fields: [resolvedOutcomeId], references: [id])
+  resolutionNotes   String?
+
+  // Admin
+  createdById   String?
+
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  outcomes      Outcome[]     @relation("MarketOutcomes")
+  bets          Bet[]
+  bookmarks     Bookmark[]
+  comments      Comment[]
+  priceHistory  PriceHistory[]
+
+  @@index([category])
+  @@index([status])
+  @@index([endDate])
+  @@index([featured])
+  @@index([trending])
+}
+
+model Outcome {
+  id          String   @id @default(cuid())
+  marketId    String
+  market      Market   @relation("MarketOutcomes", fields: [marketId], references: [id], onDelete: Cascade)
+
+  label       String
+  probability Decimal  @default(50) @db.Decimal(5, 2) // 0.00 - 100.00
+  totalBets   Int      @default(0)
+  volume      Decimal  @default(0) @db.Decimal(18, 2)
+
+  // AMM state
+  shares      Decimal  @default(500000) @db.Decimal(18, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bets        Bet[]
+  resolvedMarket Market? @relation("ResolvedOutcome")
+  priceHistory PriceHistory[]
+
+  @@index([marketId])
+}
+
+enum MarketStatus {
+  PENDING    // Belum aktif
+  ACTIVE     // Sedang berjalan
+  PAUSED     // Sementara dihentikan
+  CLOSED     // Sudah tutup, menunggu resolusi
+  RESOLVED   // Sudah ada pemenang
+  CANCELLED  // Dibatalkan, refund semua
+  DISPUTED   // Ada dispute
+}
+
+enum Category {
+  politik
+  ekonomi
+  olahraga
+  hiburan
+  teknologi
+  sosial
+  hukum
+  internasional
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  marketId    String
+  market      Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  outcomeId   String
+  outcome     Outcome  @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+
+  probability Decimal  @db.Decimal(5, 2)
+  volume      Decimal  @db.Decimal(18, 2)
+
+  timestamp   DateTime @default(now())
+
+  @@index([marketId, timestamp])
+  @@index([outcomeId, timestamp])
+}
+
+// ============================================
+// BETTING
+// ============================================
+
+model Bet {
+  id              String    @id @default(cuid())
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+
+  marketId        String
+  market          Market    @relation(fields: [marketId], references: [id])
+
+  outcomeId       String
+  outcome         Outcome   @relation(fields: [outcomeId], references: [id])
+
+  // Bet details
+  amount          Decimal   @db.Decimal(18, 2)
+  shares          Decimal   @db.Decimal(18, 4)
+  probability     Decimal   @db.Decimal(5, 2) // Probability saat bet
+  avgPrice        Decimal   @db.Decimal(10, 6)
+
+  // Payout
+  potentialPayout Decimal   @db.Decimal(18, 2)
+  actualPayout    Decimal?  @db.Decimal(18, 2)
+  profit          Decimal?  @db.Decimal(18, 2)
+
+  // Status
+  status          BetStatus @default(ACTIVE)
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  settledAt       DateTime?
+
+  @@index([userId])
+  @@index([marketId])
+  @@index([outcomeId])
+  @@index([status])
+}
+
+enum BetStatus {
+  ACTIVE     // Masih berjalan
+  WON        // Menang
+  LOST       // Kalah
+  CANCELLED  // Dibatalkan (refund)
+  CASHED_OUT // Di-cash out sebelum resolusi
+}
+
+// ============================================
+// TRANSACTIONS & PAYMENTS
+// ============================================
+
+model Transaction {
+  id                    String            @id @default(cuid())
+  userId                String
+  user                  User              @relation(fields: [userId], references: [id])
+
+  // Type
+  type                  TransactionType
+
+  // Amount
+  amount                Decimal           @db.Decimal(18, 2)
+  fee                   Decimal           @default(0) @db.Decimal(18, 2)
+  totalAmount           Decimal           @db.Decimal(18, 2)
+
+  // Payment details
+  paymentMethod         PaymentMethod
+  bankCode              String?
+  ewalletCode           String?
+  cryptoCode            String?
+  cryptoNetwork         String?
+
+  // Virtual Account / Crypto
+  virtualAccountNumber  String?
+  cryptoAddress         String?
+  cryptoAmount          Decimal?          @db.Decimal(18, 8)
+  cryptoTxHash          String?
+
+  // External references
+  externalId            String?           @unique
+  uniwireInvoiceId      String?
+
+  // Status
+  status                TransactionStatus @default(PENDING)
+  failureReason         String?
+
+  // Timestamps
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  expiresAt             DateTime?
+  paidAt                DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([externalId])
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  BET_PLACED
+  BET_WON
+  BET_REFUND
+  REFERRAL_BONUS
+  PROMO_BONUS
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  VIRTUAL_ACCOUNT
+  EWALLET
+  QRIS
+  CRYPTO
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+
+  read      Boolean          @default(false)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  BET_PLACED
+  BET_WON
+  BET_LOST
+  MARKET_RESOLVED
+  DEPOSIT_COMPLETED
+  WITHDRAWAL_COMPLETED
+  KYC_APPROVED
+  KYC_REJECTED
+  REFERRAL_BONUS
+  SYSTEM
+}
+
+// ============================================
+// SOCIAL
+// ============================================
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, marketId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  content   String   @db.Text
+
+  // Replies
+  parentId  String?
+  parent    Comment? @relation("Replies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("Replies")
+
+  // Stats
+  likes     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([marketId])
+  @@index([userId])
+}
+
+// ============================================
+// ADMIN & SETTINGS
+// ============================================
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String   // e.g., "market:123", "user:456"
+  details   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([target])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+
+  updatedAt DateTime @updatedAt
+}
+
+model Referral {
+  id              String   @id @default(cuid())
+  referrerId      String
+  referredUserId  String
+
+  // Bonus tracking
+  bonusAmount     Decimal  @db.Decimal(18, 2)
+  bonusPaid       Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  paidAt          DateTime?
+
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId])
+}
