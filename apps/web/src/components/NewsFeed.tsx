@@ -102,12 +102,28 @@ export default function NewsFeed({
 
   const getSourceColor = (sourceName: string): string => {
     const colors: Record<string, string> = {
+      // Major News Portals
       kompas: 'bg-blue-100 text-blue-800',
       detik: 'bg-red-100 text-red-800',
       cnnindonesia: 'bg-orange-100 text-orange-800',
       tribun: 'bg-green-100 text-green-800',
       tempo: 'bg-purple-100 text-purple-800',
       liputan6: 'bg-yellow-100 text-yellow-800',
+      // National News Agency
+      antara: 'bg-teal-100 text-teal-800',
+      // Business & Finance
+      cnbcindonesia: 'bg-sky-100 text-sky-800',
+      bisnis: 'bg-emerald-100 text-emerald-800',
+      kontan: 'bg-amber-100 text-amber-800',
+      // Other Portals
+      republika: 'bg-lime-100 text-lime-800',
+      okezone: 'bg-rose-100 text-rose-800',
+      sindonews: 'bg-cyan-100 text-cyan-800',
+      medcom: 'bg-indigo-100 text-indigo-800',
+      // Sports
+      bolasport: 'bg-green-100 text-green-800',
+      // Tech
+      tekno: 'bg-violet-100 text-violet-800',
     };
     return colors[sourceName.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };

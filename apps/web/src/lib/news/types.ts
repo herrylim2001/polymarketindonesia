@@ -60,6 +60,7 @@ export interface RSSItem {
 
 // Indonesian news sources configuration
 export const INDONESIAN_NEWS_SOURCES: NewsSource[] = [
+  // Major News Portals
   {
     id: 'kompas',
     name: 'kompas',
@@ -106,6 +107,91 @@ export const INDONESIAN_NEWS_SOURCES: NewsSource[] = [
     displayName: 'Liputan6',
     baseUrl: 'https://www.liputan6.com',
     rssUrl: 'https://www.liputan6.com/rss',
+    type: 'rss',
+  },
+  // National News Agency
+  {
+    id: 'antara',
+    name: 'antara',
+    displayName: 'Antara News',
+    baseUrl: 'https://www.antaranews.com',
+    rssUrl: 'https://www.antaranews.com/rss/terkini',
+    type: 'rss',
+  },
+  // Business & Finance
+  {
+    id: 'cnbcindonesia',
+    name: 'cnbcindonesia',
+    displayName: 'CNBC Indonesia',
+    baseUrl: 'https://www.cnbcindonesia.com',
+    rssUrl: 'https://www.cnbcindonesia.com/rss',
+    type: 'rss',
+  },
+  {
+    id: 'bisnis',
+    name: 'bisnis',
+    displayName: 'Bisnis.com',
+    baseUrl: 'https://www.bisnis.com',
+    rssUrl: 'https://www.bisnis.com/rss',
+    type: 'rss',
+  },
+  {
+    id: 'kontan',
+    name: 'kontan',
+    displayName: 'Kontan',
+    baseUrl: 'https://www.kontan.co.id',
+    rssUrl: 'https://www.kontan.co.id/rss',
+    type: 'rss',
+  },
+  // Other Major Portals
+  {
+    id: 'republika',
+    name: 'republika',
+    displayName: 'Republika',
+    baseUrl: 'https://www.republika.co.id',
+    rssUrl: 'https://www.republika.co.id/rss',
+    type: 'rss',
+  },
+  {
+    id: 'okezone',
+    name: 'okezone',
+    displayName: 'Okezone',
+    baseUrl: 'https://www.okezone.com',
+    rssUrl: 'https://sindikasi.okezone.com/index.php/rss/1/RSS2.0',
+    type: 'rss',
+  },
+  {
+    id: 'sindonews',
+    name: 'sindonews',
+    displayName: 'SINDOnews',
+    baseUrl: 'https://www.sindonews.com',
+    rssUrl: 'https://index.sindonews.com/rss',
+    type: 'rss',
+  },
+  {
+    id: 'medcom',
+    name: 'medcom',
+    displayName: 'Medcom.id',
+    baseUrl: 'https://www.medcom.id',
+    rssUrl: 'https://www.medcom.id/rss/all',
+    type: 'rss',
+  },
+  // Sports
+  {
+    id: 'bolasport',
+    name: 'bolasport',
+    displayName: 'Bola Sport',
+    baseUrl: 'https://www.bolasport.com',
+    rssUrl: 'https://www.bolasport.com/rss',
+    type: 'rss',
+  },
+  // Tech
+  {
+    id: 'tekno',
+    name: 'tekno',
+    displayName: 'Tekno Kompas',
+    baseUrl: 'https://tekno.kompas.com',
+    rssUrl: 'https://rss.kompas.com/tekno',
     type: 'rss',
   },
 ];
