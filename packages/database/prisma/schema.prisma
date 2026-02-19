@@ -149,6 +149,7 @@ model Market {
   bookmarks     Bookmark[]
   comments      Comment[]
   priceHistory  PriceHistory[]
+  marketNews    MarketNews[]
 
   @@index([category])
   @@index([status])
@@ -416,6 +417,87 @@ model Comment {
 
   @@index([marketId])
   @@index([userId])
+}
+
+// ============================================
+// NEWS & ARTICLES
+// ============================================
+
+model News {
+  id          String      @id @default(cuid())
+
+  // Article details
+  title       String
+  description String?     @db.Text
+  content     String?     @db.Text
+  imageUrl    String?
+  sourceUrl   String      @unique
+  sourceName  String      // kompas, detik, cnn, etc.
+
+  // Metadata
+  author      String?
+  publishedAt DateTime
+  category    Category?
+
+  // Keywords for matching with markets
+  keywords    String[]    @default([])
+
+  // Status
+  isActive    Boolean     @default(true)
+
+  // Timestamps
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  marketNews  MarketNews[]
+
+  @@index([sourceName])
+  @@index([category])
+  @@index([publishedAt])
+  @@index([keywords])
+}
+
+model MarketNews {
+  id        String   @id @default(cuid())
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  newsId    String
+  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  // Relevance score (0-100)
+  relevance Int      @default(50)
+
+  // Admin can manually link/unlink
+  isManual  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([marketId, newsId])
+  @@index([marketId])
+  @@index([newsId])
+}
+
+model NewsSource {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  baseUrl     String
+  rssUrl      String?
+  apiKey      String?
+
+  // Settings
+  isActive    Boolean  @default(true)
+  fetchInterval Int    @default(30) // minutes
+
+  // Categories this source covers
+  categories  Category[]
+
+  // Last fetch
+  lastFetchAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ============================================
