@@ -1,40 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  withAuth,
+  successResponse,
+  errorResponse,
+  validationErrorResponse,
+  getPaginationParams,
+  getSearchParams,
+  RATE_LIMITS,
+} from '@/lib/api/middleware';
+import { validateSchema, markNotificationReadSchema } from '@/lib/api/validation';
 
 // GET /api/notifications - Get user's notifications
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ user, request }) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const unreadOnly = searchParams.get('unreadOnly') === 'true';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const { page, limit, skip } = getPaginationParams(request);
+    const params = getSearchParams(request);
+    const unreadOnly = params.get('unreadOnly') === 'true';
+    const type = params.get('type');
 
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'User ID wajib diisi' },
-        { status: 400 }
-      );
-    }
-
-    const where: Record<string, unknown> = { userId };
+    const where: Record<string, unknown> = { userId: user!.id };
     if (unreadOnly) where.read = false;
+    if (type) where.type = type;
 
-    const total = await prisma.notification.count({ where });
-    const unreadCount = await prisma.notification.count({
-      where: { userId, read: false },
-    });
+    const [notifications, total, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.notification.count({ where }),
+      prisma.notification.count({
+        where: { userId: user!.id, read: false },
+      }),
+    ]);
 
-    const notifications = await prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: notifications,
+    return successResponse({
+      notifications,
       unreadCount,
       pagination: {
         page,
@@ -45,86 +48,99 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    return NextResponse.json(
-      { success: false, error: 'Gagal mengambil notifikasi' },
-      { status: 500 }
-    );
+    return errorResponse('Gagal mengambil notifikasi', 500);
   }
-}
-
-// POST /api/notifications - Create notification (internal use)
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { userId, type, title, message, link } = body;
-
-    if (!userId || !type || !title || !message) {
-      return NextResponse.json(
-        { success: false, error: 'Data tidak lengkap' },
-        { status: 400 }
-      );
-    }
-
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        link,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: notification,
-    }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    return NextResponse.json(
-      { success: false, error: 'Gagal membuat notifikasi' },
-      { status: 500 }
-    );
-  }
-}
+}, RATE_LIMITS.user)
 
 // PATCH /api/notifications - Mark notifications as read
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async ({ user, request }) => {
   try {
     const body = await request.json();
-    const { userId, notificationIds, markAll } = body;
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'User ID wajib diisi' },
-        { status: 400 }
-      );
-    }
+    const { notificationIds, markAll } = body;
 
     if (markAll) {
-      await prisma.notification.updateMany({
-        where: { userId, read: false },
+      // Mark all as read
+      const result = await prisma.notification.updateMany({
+        where: { userId: user!.id, read: false },
         data: { read: true },
       });
-    } else if (notificationIds && notificationIds.length > 0) {
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: notificationIds },
-          userId,
-        },
-        data: { read: true },
+
+      return successResponse({
+        message: `${result.count} notifikasi ditandai sudah dibaca`,
+        count: result.count,
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Notifikasi berhasil ditandai sudah dibaca',
+    // Mark specific notifications as read
+    const validation = validateSchema(markNotificationReadSchema, { notificationIds });
+
+    if (!validation.success) {
+      return validationErrorResponse(validation.errors);
+    }
+
+    const result = await prisma.notification.updateMany({
+      where: {
+        id: { in: validation.data.notificationIds },
+        userId: user!.id, // Ensure user owns the notifications
+      },
+      data: { read: true },
+    });
+
+    return successResponse({
+      message: `${result.count} notifikasi ditandai sudah dibaca`,
+      count: result.count,
     });
   } catch (error) {
     console.error('Error marking notifications as read:', error);
-    return NextResponse.json(
-      { success: false, error: 'Gagal mengupdate notifikasi' },
-      { status: 500 }
-    );
+    return errorResponse('Gagal mengupdate notifikasi', 500);
   }
-}
+}, RATE_LIMITS.user);
+
+// DELETE /api/notifications - Delete notifications
+export const DELETE = withAuth(async ({ user, request }) => {
+  try {
+    const params = getSearchParams(request);
+    const notificationId = params.get('id');
+    const deleteAll = params.get('all') === 'true';
+    const deleteRead = params.get('read') === 'true';
+
+    if (deleteAll) {
+      const where: Record<string, unknown> = { userId: user!.id };
+      if (deleteRead) {
+        where.read = true; // Only delete read notifications
+      }
+
+      const result = await prisma.notification.deleteMany({ where });
+
+      return successResponse({
+        message: `${result.count} notifikasi dihapus`,
+        count: result.count,
+      });
+    }
+
+    if (notificationId) {
+      // Delete specific notification
+      const notification = await prisma.notification.findFirst({
+        where: {
+          id: notificationId,
+          userId: user!.id,
+        },
+      });
+
+      if (!notification) {
+        return errorResponse('Notifikasi tidak ditemukan', 404);
+      }
+
+      await prisma.notification.delete({
+        where: { id: notificationId },
+      });
+
+      return successResponse({ message: 'Notifikasi dihapus' });
+    }
+
+    return errorResponse('ID notifikasi atau parameter all wajib diisi', 400);
+  } catch (error) {
+    console.error('Error deleting notifications:', error);
+    return errorResponse('Gagal menghapus notifikasi', 500);
+  }
+}, RATE_LIMITS.user);

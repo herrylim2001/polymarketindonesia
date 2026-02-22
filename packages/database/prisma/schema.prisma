@@ -49,6 +49,9 @@ model User {
   isBanned      Boolean   @default(false)
   banReason     String?
 
+  // Metadata (for password reset tokens, etc.)
+  metadata      Json?
+
   // Timestamps
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -93,13 +96,18 @@ model KycDocument {
 
   type        String   // ktp, sim, passport
   documentUrl String
+  documentNumber String?
   status      KycStatus @default(PENDING)
   rejectedReason String?
+
+  // Verified data extracted from document
+  verifiedData Json?
 
   verifiedAt  DateTime?
   createdAt   DateTime @default(now())
 
   @@index([userId])
+  @@index([status])
 }
 
 // ============================================
@@ -134,7 +142,10 @@ model Market {
   // Resolution
   resolvedOutcomeId String?
   resolvedOutcome   Outcome?  @relation("ResolvedOutcome", fields: [resolvedOutcomeId], references: [id])
+  winningOutcomeId  String?   // Alias for resolvedOutcomeId for clarity
   resolutionNotes   String?
+  resolutionDetails String?   @db.Text
+  resolutionSource  String?
 
   // Admin
   createdById   String?
@@ -170,6 +181,9 @@ model Outcome {
 
   // AMM state
   shares      Decimal  @default(500000) @db.Decimal(18, 2)
+
+  // Resolution
+  isWinner    Boolean  @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -244,7 +258,12 @@ model Bet {
   // Payout
   potentialPayout Decimal   @db.Decimal(18, 2)
   actualPayout    Decimal?  @db.Decimal(18, 2)
+  payout          Decimal?  @db.Decimal(18, 2)
   profit          Decimal?  @db.Decimal(18, 2)
+
+  // Cash-out
+  cashedOutAt     DateTime?
+  cashedOutAmount Decimal?  @db.Decimal(18, 2)
 
   // Status
   status          BetStatus @default(ACTIVE)
@@ -252,6 +271,7 @@ model Bet {
   // Timestamps
   createdAt       DateTime  @default(now())
   settledAt       DateTime?
+  resolvedAt      DateTime?
 
   @@index([userId])
   @@index([marketId])
@@ -263,7 +283,8 @@ enum BetStatus {
   ACTIVE     // Masih berjalan
   WON        // Menang
   LOST       // Kalah
-  CANCELLED  // Dibatalkan (refund)
+  CANCELLED  // Dibatalkan
+  REFUNDED   // Di-refund (market cancelled)
   CASHED_OUT // Di-cash out sebelum resolusi
 }
 
@@ -305,6 +326,9 @@ model Transaction {
   status                TransactionStatus @default(PENDING)
   failureReason         String?
 
+  // Metadata for additional info
+  metadata              Json?
+
   // Timestamps
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
@@ -322,6 +346,7 @@ enum TransactionType {
   BET_PLACED
   BET_WON
   BET_REFUND
+  REFUND
   REFERRAL_BONUS
   PROMO_BONUS
 }
@@ -412,11 +437,15 @@ model Comment {
   // Stats
   likes     Int      @default(0)
 
+  // Moderation
+  isHidden  Boolean  @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([marketId])
   @@index([userId])
+  @@index([isHidden])
 }
 
 // ============================================
